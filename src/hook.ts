@@ -3,6 +3,7 @@
  * Main entry point for processing PermissionRequest events
  */
 
+import Anthropic from '@anthropic-ai/sdk';
 import type {
   PermissionRequestInput,
   PermissionRequestOutput,
@@ -11,6 +12,9 @@ import type {
 import { checkInstantBlock } from './guard/instant-block.js';
 import { detectCheckpoint } from './guard/checkpoint.js';
 import { checkTrustedDomains } from './guard/trusted-domain.js';
+import { triageWithHaiku } from './guard/haiku-triage.js';
+import { reviewWithSonnet } from './guard/sonnet-review.js';
+import { getApiKey } from './cli/config.js';
 
 export type HookDecision = 'allow' | 'deny' | 'needs-review';
 export type DecisionSource =
@@ -18,13 +22,16 @@ export type DecisionSource =
   | 'trusted-domain'
   | 'no-checkpoint'
   | 'checkpoint'
-  | 'non-bash-tool';
+  | 'non-bash-tool'
+  | 'haiku'
+  | 'sonnet';
 
 export interface ProcessResult {
   decision: HookDecision;
   reason: string;
   source: DecisionSource;
   checkpoint?: SecurityCheckpoint;
+  userMessage?: string;
 }
 
 /**
@@ -35,10 +42,11 @@ export interface ProcessResult {
  * 2. Instant Block → Deny immediately
  * 3. No Checkpoint → Allow (safe command)
  * 4. Trusted Domain → Allow (script from trusted source)
- * 5. Checkpoint Triggered → Needs LLM review
+ * 5. Checkpoint Triggered → LLM review (Haiku → Sonnet if escalated)
  */
 export async function processPermissionRequest(
-  input: PermissionRequestInput
+  input: PermissionRequestInput,
+  anthropicClient?: Anthropic
 ): Promise<ProcessResult> {
   // Step 1: Only analyze Bash commands
   if (input.tool_name !== 'Bash') {
@@ -83,14 +91,65 @@ export async function processPermissionRequest(
     }
   }
 
-  // Step 5: Checkpoint triggered, needs LLM review
-  // Without LLM integration, return needs-review
-  return {
+  // Step 5: LLM review if API key is available
+  if (!anthropicClient) {
+    return {
+      decision: 'needs-review',
+      reason: `Checkpoint triggered: ${checkpoint.type} - ${checkpoint.description}`,
+      source: 'checkpoint',
+      checkpoint,
+    };
+  }
+
+  // Step 5a: Haiku triage
+  const triage = await triageWithHaiku(anthropicClient, checkpoint);
+
+  if (triage.classification === 'BLOCK') {
+    return {
+      decision: 'deny',
+      reason: `Blocked by Haiku: ${triage.reason}`,
+      source: 'haiku',
+    };
+  }
+
+  if (triage.classification === 'SELF_HANDLE') {
+    return {
+      decision: 'allow',
+      reason: `Approved by Haiku: ${triage.reason}`,
+      source: 'haiku',
+    };
+  }
+
+  // Step 5b: Escalate to Sonnet for deeper review
+  const review = await reviewWithSonnet(anthropicClient, checkpoint, triage);
+
+  if (review.verdict === 'BLOCK') {
+    return {
+      decision: 'deny',
+      reason: `Blocked by Sonnet: ${review.reason}`,
+      source: 'sonnet',
+    };
+  }
+
+  if (review.verdict === 'ALLOW') {
+    return {
+      decision: 'allow',
+      reason: `Approved by Sonnet: ${review.reason}`,
+      source: 'sonnet',
+    };
+  }
+
+  // ASK_USER - return as needs-review with user message
+  const result: ProcessResult = {
     decision: 'needs-review',
-    reason: `Checkpoint triggered: ${checkpoint.type} - ${checkpoint.description}`,
-    source: 'checkpoint',
+    reason: review.reason,
+    source: 'sonnet',
     checkpoint,
   };
+  if (review.userMessage) {
+    result.userMessage = review.userMessage;
+  }
+  return result;
 }
 
 /**
@@ -137,8 +196,15 @@ export async function runHook(): Promise<void> {
     return;
   }
 
+  // Try to get API key and create Anthropic client
+  let anthropicClient: Anthropic | undefined;
+  const apiKey = await getApiKey();
+  if (apiKey) {
+    anthropicClient = new Anthropic({ apiKey });
+  }
+
   // Process the request
-  const result = await processPermissionRequest(input);
+  const result = await processPermissionRequest(input, anthropicClient);
 
   // Convert result to hook output
   let output: PermissionRequestOutput;
@@ -146,12 +212,16 @@ export async function runHook(): Promise<void> {
   if (result.decision === 'deny') {
     output = createHookOutput('deny', result.reason);
   } else if (result.decision === 'needs-review') {
-    // Without LLM, we need to be cautious - deny with explanation
-    // In future, this will call Haiku/Sonnet for analysis
-    output = createHookOutput(
-      'deny',
-      `Security review required: ${result.reason}. Configure API key with 'vibesafe config' to enable LLM analysis.`
-    );
+    if (result.userMessage) {
+      // Sonnet asked for user confirmation
+      output = createHookOutput('deny', `User approval required: ${result.userMessage}`);
+    } else {
+      // No API key configured
+      output = createHookOutput(
+        'deny',
+        `Security review required: ${result.reason}. Configure API key with 'vibesafe config' to enable LLM analysis.`
+      );
+    }
   } else {
     output = createHookOutput('allow');
   }
