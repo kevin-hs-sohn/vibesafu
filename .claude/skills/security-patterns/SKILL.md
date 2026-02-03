@@ -1,6 +1,6 @@
 ---
 name: security-patterns
-description: VibeSafe 보안 패턴 정의 및 업데이트 가이드라인.
+description: VibeSafe security pattern definitions and update guidelines.
 ---
 
 # Instant Block Patterns
@@ -40,10 +40,10 @@ const CRYPTO_MINING_PATTERNS = [
 
 ## Pattern Update Rules
 
-1. 새 패턴 추가 전 테스트 케이스 작성
-2. False positive 검증 (정상 명령이 차단되지 않는지)
-3. 성능 테스트 (정규표현식 복잡도)
-4. 문서화 (왜 이 패턴이 필요한지)
+1. Write test cases before adding new patterns
+2. Validate false positives (ensure normal commands aren't blocked)
+3. Performance testing (regex complexity)
+4. Documentation (why this pattern is needed)
 
 # Trusted Domains
 

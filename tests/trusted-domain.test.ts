@@ -3,7 +3,7 @@ import { isTrustedUrl, extractUrls, isDomainTrusted } from '../src/config/domain
 
 describe('Trusted Domain', () => {
   // ==========================================================================
-  // Trusted Domains (신뢰 도메인)
+  // Trusted Domains
   // ==========================================================================
   describe('isTrustedUrl', () => {
     describe('Trusted Domains', () => {

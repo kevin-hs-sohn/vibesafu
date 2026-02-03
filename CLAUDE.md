@@ -9,17 +9,17 @@
 - Test: Vitest
 
 ## Commands
-- `pnpm dev` - Watch mode 개발
-- `pnpm build` - 프로덕션 빌드
-- `pnpm test` - 테스트 실행
-- `pnpm test:watch` - 테스트 워치 모드
-- `pnpm typecheck` - TypeScript 타입 검사
-- `pnpm verify` - typecheck + test (커밋 전 필수)
+- `pnpm dev` - Watch mode development
+- `pnpm build` - Production build
+- `pnpm test` - Run tests
+- `pnpm test:watch` - Test watch mode
+- `pnpm typecheck` - TypeScript type checking
+- `pnpm verify` - typecheck + test (required before commit)
 
 ## Verification
-**모든 변경 후 실행:**
-1. `pnpm typecheck` - 타입 에러 없음
-2. `pnpm test` - 테스트 통과
+**Run after all changes:**
+1. `pnpm typecheck` - No type errors
+2. `pnpm test` - Tests pass
 
 ## Git Workflow
 - Never commit/push directly to main
@@ -30,11 +30,11 @@
 - One logical change per commit
 
 ## TDD Workflow
-**Test-Driven Development 필수.**
+**Test-Driven Development required.**
 
-1. **RED** - 실패하는 테스트 먼저 작성
-2. **GREEN** - 테스트 통과하는 최소 코드 작성
-3. **REFACTOR** - 리팩터링, 테스트 여전히 통과
+1. **RED** - Write failing test first
+2. **GREEN** - Write minimal code to pass test
+3. **REFACTOR** - Refactor, tests still pass
 
 ```
 Never write production code without a failing test
@@ -45,56 +45,56 @@ Always define expected behavior in test before implementing
 
 ```
 src/
-├── index.ts              # CLI 엔트리포인트 (install, uninstall, check, config)
-├── types.ts              # 타입 정의
-├── hook.ts               # PermissionRequest hook 메인 핸들러
+├── index.ts              # CLI entry point (install, uninstall, check, config)
+├── types.ts              # Type definitions
+├── hook.ts               # PermissionRequest hook main handler
 ├── guard/
-│   ├── instant-block.ts  # 즉시 차단 (LLM 없이 패턴 매칭)
-│   ├── checkpoint.ts     # 체크포인트 감지 (보안 검사 트리거)
-│   ├── trusted-domain.ts # 신뢰 도메인 화이트리스트
-│   ├── haiku-triage.ts   # Haiku 1차 분류 (SELF_HANDLE/ESCALATE/BLOCK)
-│   └── sonnet-review.ts  # Sonnet 심층 분석 (ALLOW/ASK_USER/BLOCK)
+│   ├── instant-block.ts  # Instant block (pattern matching without LLM)
+│   ├── checkpoint.ts     # Checkpoint detection (security check trigger)
+│   ├── trusted-domain.ts # Trusted domain whitelist
+│   ├── haiku-triage.ts   # Haiku primary classification (SELF_HANDLE/ESCALATE/BLOCK)
+│   └── sonnet-review.ts  # Sonnet deep analysis (ALLOW/ASK_USER/BLOCK)
 ├── config/
-│   ├── patterns.ts       # 위험 패턴 정의 (regex)
-│   └── domains.ts        # 신뢰 도메인 목록
+│   ├── patterns.ts       # Danger patterns definition (regex)
+│   └── domains.ts        # Trusted domains list
 └── utils/
-    ├── logger.ts         # 로깅 유틸리티
-    └── url.ts            # URL 파싱/검증
+    ├── logger.ts         # Logging utility
+    └── url.ts            # URL parsing/validation
 ```
 
 ## Security Pipeline Flow
 
 ```
-[PermissionRequest 입력]
+[PermissionRequest Input]
          │
          ▼
 ┌─────────────────────┐
-│   Instant Block     │ ← 역방향 쉘, 데이터 유출, 채굴기
-│   (패턴 매칭)        │   → 즉시 DENY
+│   Instant Block     │ ← Reverse shell, data exfil, mining
+│   (Pattern Match)   │   → Immediate DENY
 └─────────────────────┘
-         │ 통과
+         │ Pass
          ▼
 ┌─────────────────────┐
-│   Trusted Domain    │ ← github.com, bun.sh 등
-│   (화이트리스트)     │   → 즉시 ALLOW
+│   Trusted Domain    │ ← github.com, bun.sh, etc.
+│   (Whitelist)       │   → Immediate ALLOW
 └─────────────────────┘
-         │ 해당 없음
+         │ Not matched
          ▼
 ┌─────────────────────┐
-│   Haiku Triage      │ ← 빠른 1차 분류
-│   (저비용 LLM)       │   → SELF_HANDLE / ESCALATE / BLOCK
+│   Haiku Triage      │ ← Fast primary classification
+│   (Low-cost LLM)    │   → SELF_HANDLE / ESCALATE / BLOCK
 └─────────────────────┘
          │ ESCALATE
          ▼
 ┌─────────────────────┐
-│   Sonnet Review     │ ← 심층 분석
-│   (고성능 LLM)       │   → ALLOW / ASK_USER / BLOCK
+│   Sonnet Review     │ ← Deep analysis
+│   (High-perf LLM)   │   → ALLOW / ASK_USER / BLOCK
 └─────────────────────┘
 ```
 
 ## Hook Input/Output
 
-**입력 (stdin JSON):**
+**Input (stdin JSON):**
 ```json
 {
   "session_id": "abc123",
@@ -104,7 +104,7 @@ src/
 }
 ```
 
-**출력 (stdout JSON):**
+**Output (stdout JSON):**
 ```json
 {
   "hookSpecificOutput": {
@@ -117,10 +117,10 @@ src/
 ## Code Style
 
 ### Naming
-- 변수/함수: camelCase
-- 타입/인터페이스: PascalCase
-- 상수: UPPER_SNAKE_CASE
-- 파일: kebab-case.ts
+- Variables/functions: camelCase
+- Types/interfaces: PascalCase
+- Constants: UPPER_SNAKE_CASE
+- Files: kebab-case.ts
 
 ### Example
 ```typescript
@@ -146,10 +146,10 @@ function checkInstantBlock(command) {
 ```
 
 ### Error Messages
-에러 메시지는 반드시 포함:
-1. **무엇이** 실패했는지
-2. **왜** 실패했는지
-3. **어떻게** 해결하는지
+Error messages must include:
+1. **What** failed
+2. **Why** it failed
+3. **How** to fix it
 
 ```typescript
 // Good
@@ -165,25 +165,25 @@ throw new Error('Invalid key');
 ## Boundaries
 
 ### Always
-- 실패 테스트 먼저 작성 후 구현
-- `pnpm verify` 통과 후 커밋
-- 에러 메시지에 해결 방법 포함
-- Hook 출력은 반드시 유효한 JSON
+- Write failing test before implementation
+- Pass `pnpm verify` before commit
+- Include resolution steps in error messages
+- Hook output must be valid JSON
 
 ### Ask first
-- 새 의존성 추가
-- 보안 패턴 변경
-- API 모델 변경
+- Adding new dependencies
+- Changing security patterns
+- Changing API models
 
 ### Never
-- API 키를 코드에 하드코딩
-- 테스트 없이 보안 로직 변경
-- Hook JSON 스키마 임의 변경
+- Hardcode API keys in code
+- Change security logic without tests
+- Arbitrarily change hook JSON schema
 
 ## Key Files
-- `plan.md` - 설계 문서. 코딩 전 여기에 작성.
-- `SCRATCHPAD.md` - 진행 상황 추적. 매 세션 읽고/업데이트.
+- `plan.md` - Design doc. Write here before coding.
+- `SCRATCHPAD.md` - Progress tracking. Read/update every session.
 
 ## Config Location
-- 사용자 설정: `~/.vibesafe/config.json`
-- 로그: `~/.vibesafe/logs/`
+- User settings: `~/.vibesafe/config.json`
+- Logs: `~/.vibesafe/logs/`

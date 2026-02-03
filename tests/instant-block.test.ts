@@ -3,7 +3,7 @@ import { checkInstantBlock } from '../src/guard/instant-block.js';
 
 describe('checkInstantBlock', () => {
   // ==========================================================================
-  // Reverse Shells (역방향 쉘) - Must block
+  // Reverse Shells - Must block
   // ==========================================================================
   describe('Reverse Shell Detection', () => {
     it('should block bash reverse shell', () => {
@@ -34,7 +34,7 @@ describe('checkInstantBlock', () => {
   });
 
   // ==========================================================================
-  // Data Exfiltration (데이터 유출) - Must block
+  // Data Exfiltration - Must block
   // ==========================================================================
   describe('Data Exfiltration Detection', () => {
     it('should block curl with API_KEY', () => {
@@ -74,7 +74,7 @@ describe('checkInstantBlock', () => {
   });
 
   // ==========================================================================
-  // Cryptocurrency Miners (암호화폐 채굴) - Must block
+  // Cryptocurrency Miners - Must block
   // ==========================================================================
   describe('Crypto Mining Detection', () => {
     it('should block xmrig', () => {
@@ -94,7 +94,7 @@ describe('checkInstantBlock', () => {
   });
 
   // ==========================================================================
-  // Obfuscated Execution (난독화된 실행) - Must block
+  // Obfuscated Execution - Must block
   // ==========================================================================
   describe('Obfuscated Execution Detection', () => {
     it('should block base64 decode to bash', () => {
@@ -114,7 +114,7 @@ describe('checkInstantBlock', () => {
   });
 
   // ==========================================================================
-  // Safe Commands (안전한 명령어) - Must NOT block
+  // Safe Commands - Must NOT block (False Positive Prevention)
   // ==========================================================================
   describe('Safe Commands (False Positive Prevention)', () => {
     it('should NOT block normal git commands', () => {
@@ -242,7 +242,7 @@ EOF`;
     });
 
     it('should handle command with unicode characters', () => {
-      const result = checkInstantBlock('echo "한글 테스트 🚀"');
+      const result = checkInstantBlock('echo "unicode test 🚀"');
       expect(result.blocked).toBe(false);
     });
   });
