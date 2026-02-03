@@ -1,23 +1,23 @@
 ---
 name: tdd-workflow
-description: VibeSafe TDD 워크플로우. 보안 로직 구현 시 반드시 사용.
+description: VibeSafe TDD workflow. Required for implementing security logic.
 ---
 
 # TDD for Security Code
 
 ## Process
 
-1. **RED** - 실패 테스트 작성
-   - 예상 입력/출력 정의
-   - 엣지 케이스 포함 (빈 문자열, 특수문자, 유니코드)
+1. **RED** - Write failing test
+   - Define expected input/output
+   - Include edge cases (empty string, special chars, unicode)
 
-2. **GREEN** - 최소 코드로 통과
-   - 테스트 통과만을 목표
-   - 최적화는 나중에
+2. **GREEN** - Pass with minimal code
+   - Focus only on passing tests
+   - Optimize later
 
-3. **REFACTOR** - 정리
-   - 중복 제거
-   - 테스트 여전히 통과 확인
+3. **REFACTOR** - Clean up
+   - Remove duplication
+   - Verify tests still pass
 
 ## Security Test Examples
 
@@ -40,6 +40,6 @@ describe('InstantBlock', () => {
 
 ## Rules
 
-- 보안 패턴 추가 시 반드시 테스트 먼저
-- False positive/negative 테스트 케이스 필수
-- 80%+ 커버리지 유지
+- Always write tests before adding security patterns
+- False positive/negative test cases required
+- Maintain 80%+ coverage

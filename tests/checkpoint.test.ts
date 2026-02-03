@@ -3,7 +3,7 @@ import { detectCheckpoint } from '../src/guard/checkpoint.js';
 
 describe('detectCheckpoint', () => {
   // ==========================================================================
-  // Script Execution (스크립트 실행)
+  // Script Execution
   // ==========================================================================
   describe('Script Execution', () => {
     it('should detect curl piped to bash', () => {
@@ -38,7 +38,7 @@ describe('detectCheckpoint', () => {
   });
 
   // ==========================================================================
-  // Package Installation (패키지 설치)
+  // Package Installation
   // ==========================================================================
   describe('Package Installation', () => {
     it('should detect npm install', () => {
@@ -79,7 +79,7 @@ describe('detectCheckpoint', () => {
   });
 
   // ==========================================================================
-  // Git Operations (Git 작업)
+  // Git Operations
   // ==========================================================================
   describe('Git Operations', () => {
     it('should detect git push', () => {
@@ -108,7 +108,7 @@ describe('detectCheckpoint', () => {
   });
 
   // ==========================================================================
-  // Sensitive File Access (민감 파일 접근)
+  // Sensitive File Access
   // ==========================================================================
   describe('Sensitive File Access', () => {
     it('should detect .env modification', () => {
@@ -149,7 +149,7 @@ describe('detectCheckpoint', () => {
   });
 
   // ==========================================================================
-  // Network Operations (네트워크 작업)
+  // Network Operations
   // ==========================================================================
   describe('Network Operations', () => {
     it('should detect curl download', () => {
@@ -166,7 +166,7 @@ describe('detectCheckpoint', () => {
   });
 
   // ==========================================================================
-  // No Checkpoint (체크포인트 불필요)
+  // No Checkpoint Needed
   // ==========================================================================
   describe('No Checkpoint Needed', () => {
     it('should NOT trigger on git status', () => {

@@ -199,7 +199,7 @@ describe('Sonnet Review', () => {
   // API Call Verification
   // ==========================================================================
   describe('API Call', () => {
-    it('should call Sonnet model', async () => {
+    it('should call Sonnet model with system prompt', async () => {
       mockAnthropicClient.messages.create.mockResolvedValueOnce({
         content: [{
           type: 'text',
@@ -216,13 +216,12 @@ describe('Sonnet Review', () => {
       const triage = createTriageResult('Test', []);
       await reviewWithSonnet(mockAnthropicClient as any, checkpoint, triage);
 
-      expect(mockAnthropicClient.messages.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: expect.any(Number),
-          messages: expect.any(Array),
-        })
-      );
+      const [requestBody, options] = mockAnthropicClient.messages.create.mock.calls[0];
+      expect(requestBody.model).toBe('claude-sonnet-4-20250514');
+      expect(requestBody.max_tokens).toBe(1000);
+      expect(requestBody.system).toBeDefined();
+      expect(requestBody.messages).toBeInstanceOf(Array);
+      expect(options.signal).toBeDefined(); // Timeout signal
     });
 
     it('should include triage info in prompt', async () => {
