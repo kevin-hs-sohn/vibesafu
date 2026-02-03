@@ -12,34 +12,34 @@ Maintain flow without `--dangerously-skip-permissions` while automatically block
 
 ```bash
 # Install globally
-npm install -g vibesafe
+npm install -g vibesafu
 
 # Install the hook
-vibesafe install
+vibesafu install
 
 # Configure API key (optional but recommended)
-vibesafe config
+vibesafu config
 ```
 
 ### Option B: Install from source
 
 ```bash
 # Clone the repository
-git clone https://github.com/kevin-hs-sohn/vibesafe.git
-cd vibesafe
+git clone https://github.com/kevin-hs-sohn/vibesafu.git
+cd vibesafu
 
 # Install dependencies and build
 pnpm install
 pnpm build
 
-# Link globally (makes 'vibesafe' command available)
+# Link globally (makes 'vibesafu' command available)
 npm link
 
 # Install the hook
-vibesafe install
+vibesafu install
 
 # Configure API key (optional but recommended)
-vibesafe config
+vibesafu config
 ```
 
 ### After Installation
@@ -124,21 +124,21 @@ Commands downloading from these domains bypass LLM checks:
 
 ```bash
 # Install hook to Claude Code
-vibesafe install
+vibesafu install
 
 # Configure API key and settings
-vibesafe config
+vibesafu config
 
 # Uninstall hook
-vibesafe uninstall
+vibesafu uninstall
 
 # Manual check (for testing)
-echo '{"tool_name":"Bash","tool_input":{"command":"npm install lodash"}}' | vibesafe check
+echo '{"tool_name":"Bash","tool_input":{"command":"npm install lodash"}}' | vibesafu check
 ```
 
 ## Configuration
 
-Settings are stored in `~/.vibesafe/config.json`:
+Settings are stored in `~/.vibesafu/config.json`:
 
 ```json
 {
@@ -186,8 +186,8 @@ Result: ✓ ALLOWED - Standard package installation
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/kevin-hs-sohn/vibesafe.git
-cd vibesafe
+git clone https://github.com/kevin-hs-sohn/vibesafu.git
+cd vibesafu
 pnpm install
 
 # Development mode (watch)
@@ -233,7 +233,7 @@ Most commands are handled by pattern matching or trusted domain checks without L
 1. Review why it was blocked (shown in the message)
 2. If it's a false positive, you can:
    - Add the domain to your trusted list in config
-   - Temporarily uninstall: `vibesafe uninstall`
+   - Temporarily uninstall: `vibesafu uninstall`
    - Report the issue for pattern improvement
 
 ### Can I use this with VS Code Claude extension?

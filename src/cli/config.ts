@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { VibeSafeConfig } from '../types.js';
 
-const CONFIG_DIR = join(homedir(), '.vibesafe');
+const CONFIG_DIR = join(homedir(), '.vibesafu');
 const CONFIG_PATH = join(CONFIG_DIR, 'config.json');
 
 const DEFAULT_CONFIG: VibeSafeConfig = {

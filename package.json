@@ -1,12 +1,15 @@
 {
-  "name": "vibesafe",
+  "name": "vibesafu",
   "version": "0.1.0",
   "description": "Claude Code Security Guard - Permission request interceptor with LLM-powered security analysis",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "vibesafe": "dist/index.js"
+    "vibesafu": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsup src/index.ts --watch --format esm",
     "build": "tsup src/index.ts --format esm --dts",
@@ -14,17 +17,28 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "verify": "pnpm typecheck && pnpm test"
+    "verify": "pnpm typecheck && pnpm test",
+    "prepublishOnly": "pnpm verify && pnpm build"
   },
   "keywords": [
     "claude-code",
     "security",
     "hook",
     "permission",
-    "cli"
+    "cli",
+    "anthropic",
+    "llm"
   ],
-  "author": "",
+  "author": "kevin-hs-sohn",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kevin-hs-sohn/vibesafe.git"
+  },
+  "homepage": "https://github.com/kevin-hs-sohn/vibesafe#readme",
+  "bugs": {
+    "url": "https://github.com/kevin-hs-sohn/vibesafe/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
   },

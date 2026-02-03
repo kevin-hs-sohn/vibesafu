@@ -27,7 +27,7 @@ const VIBESAFE_HOOK = {
   hooks: [
     {
       type: 'command',
-      command: 'npx vibesafe check',
+      command: 'npx vibesafu check',
     },
   ],
 };
@@ -60,7 +60,7 @@ async function writeClaudeSettings(settings: ClaudeSettings): Promise<void> {
 function isHookInstalled(settings: ClaudeSettings): boolean {
   const hooks = settings.hooks?.PermissionRequest ?? [];
   return hooks.some((h) =>
-    h.hooks.some((hook) => hook.command.includes('vibesafe'))
+    h.hooks.some((hook) => hook.command.includes('vibesafu'))
   );
 }
 
@@ -94,7 +94,7 @@ export async function install(): Promise<void> {
   console.log(`Settings file: ${CLAUDE_SETTINGS_PATH}`);
   console.log('');
   console.log('Next steps:');
-  console.log('  1. Run "vibesafe config" to set up your Anthropic API key');
+  console.log('  1. Run "vibesafu config" to set up your Anthropic API key');
   console.log('  2. Restart Claude Code to activate the hook');
 }
 
@@ -114,7 +114,7 @@ export async function uninstall(): Promise<void> {
   // Remove VibeSafe hooks
   if (settings.hooks?.PermissionRequest) {
     settings.hooks.PermissionRequest = settings.hooks.PermissionRequest.filter(
-      (h) => !h.hooks.some((hook) => hook.command.includes('vibesafe'))
+      (h) => !h.hooks.some((hook) => hook.command.includes('vibesafu'))
     );
 
     // Clean up empty arrays

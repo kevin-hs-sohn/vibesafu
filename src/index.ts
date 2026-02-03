@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   if (!command || !COMMANDS.includes(command)) {
     console.error('VibeSafe - Claude Code Security Guard');
     console.error('');
-    console.error(`Usage: vibesafe <${COMMANDS.join('|')}>`);
+    console.error(`Usage: vibesafu <${COMMANDS.join('|')}>`);
     console.error('');
     console.error('Commands:');
     console.error('  install   - Install security hook to Claude Code');

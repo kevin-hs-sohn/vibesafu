@@ -241,7 +241,7 @@ export async function runHook(): Promise<void> {
       // No API key configured
       output = createHookOutput(
         'deny',
-        `Security review required: ${result.reason}. Configure API key with 'vibesafe config' to enable LLM analysis.`
+        `Security review required: ${result.reason}. Configure API key with 'vibesafu config' to enable LLM analysis.`
       );
     }
   } else {
