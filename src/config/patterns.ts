@@ -192,6 +192,12 @@ export const DATA_EXFIL_PATTERNS: BlockPattern[] = [
     severity: 'critical',
     description: 'wget POST with environment variable',
   },
+  {
+    name: 'wget_header_env',
+    pattern: /wget\s+.*--header.*\$\{?[A-Z_]/i,
+    severity: 'critical',
+    description: 'wget with environment variable in header',
+  },
   // Full environment dump
   {
     name: 'env_pipe_curl',
@@ -317,6 +323,100 @@ export const OBFUSCATED_EXEC_PATTERNS: BlockPattern[] = [
     severity: 'critical',
     description: 'PHP-style eval with base64 decode',
   },
+  // Bypass techniques
+  {
+    name: 'eval_curl',
+    pattern: /eval\s+.*\$\(.*curl/i,
+    severity: 'critical',
+    description: 'eval with curl command substitution',
+  },
+  {
+    name: 'eval_wget',
+    pattern: /eval\s+.*\$\(.*wget/i,
+    severity: 'critical',
+    description: 'eval with wget command substitution',
+  },
+  {
+    name: 'bash_herestring_curl',
+    pattern: /bash\s+<<<\s*.*\$\(.*curl/i,
+    severity: 'critical',
+    description: 'bash here-string with curl',
+  },
+  {
+    name: 'bash_process_sub',
+    pattern: /bash\s+<\(.*curl/i,
+    severity: 'critical',
+    description: 'bash process substitution with curl',
+  },
+  {
+    name: 'bash_process_sub_wget',
+    pattern: /bash\s+<\(.*wget/i,
+    severity: 'critical',
+    description: 'bash process substitution with wget',
+  },
+];
+
+export const DESTRUCTIVE_PATTERNS: BlockPattern[] = [
+  {
+    name: 'rm_rf_root',
+    pattern: /rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)*-[a-zA-Z]*r[a-zA-Z]*.*\s+\/(\s|$|;|&)/i,
+    severity: 'critical',
+    description: 'rm -rf on root directory',
+  },
+  {
+    name: 'rm_rf_home',
+    pattern: /rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)*-[a-zA-Z]*r[a-zA-Z]*.*\s+(~|\/home|\$HOME)/i,
+    severity: 'critical',
+    description: 'rm -rf on home directory',
+  },
+  {
+    name: 'rm_rf_star',
+    pattern: /rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)*-[a-zA-Z]*r[a-zA-Z]*\s+\*/i,
+    severity: 'critical',
+    description: 'rm -rf with wildcard',
+  },
+  {
+    name: 'mkfs_format',
+    pattern: /mkfs(\.[a-z0-9]+)?\s+\/dev\//i,
+    severity: 'critical',
+    description: 'mkfs filesystem format on device',
+  },
+  {
+    name: 'dd_destructive',
+    pattern: /dd\s+.*of=\/dev\/[hs]d/i,
+    severity: 'critical',
+    description: 'dd write to disk device',
+  },
+  {
+    name: 'dd_zero_device',
+    pattern: /dd\s+.*if=\/dev\/(zero|urandom).*of=\/dev\//i,
+    severity: 'critical',
+    description: 'dd zero/random write to device',
+  },
+  {
+    name: 'fork_bomb',
+    pattern: /:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;?\s*:/,
+    severity: 'critical',
+    description: 'Fork bomb',
+  },
+  {
+    name: 'fork_bomb_variant',
+    pattern: /\w+\(\)\s*\{\s*\w+\s*\|\s*\w+\s*&\s*\}\s*;?\s*\w+/,
+    severity: 'critical',
+    description: 'Fork bomb variant',
+  },
+  {
+    name: 'chmod_recursive_777',
+    pattern: /chmod\s+(-R|--recursive)\s+777\s+\//i,
+    severity: 'critical',
+    description: 'chmod 777 recursive on system directories',
+  },
+  {
+    name: 'chown_recursive_root',
+    pattern: /chown\s+(-R|--recursive)\s+.*\s+\/(\s|$)/i,
+    severity: 'critical',
+    description: 'chown recursive on root',
+  },
 ];
 
 // All instant block patterns combined
@@ -325,6 +425,7 @@ export const INSTANT_BLOCK_PATTERNS: BlockPattern[] = [
   ...DATA_EXFIL_PATTERNS,
   ...CRYPTO_MINING_PATTERNS,
   ...OBFUSCATED_EXEC_PATTERNS,
+  ...DESTRUCTIVE_PATTERNS,
 ];
 
 // =============================================================================
