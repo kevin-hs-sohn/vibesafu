@@ -8,7 +8,7 @@ Maintain flow without `--dangerously-skip-permissions` while automatically block
 
 ## Quick Start
 
-### Option A: Install from npm (after publishing)
+### Option A: Install from npm
 
 ```bash
 # Install globally

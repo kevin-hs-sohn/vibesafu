@@ -9,6 +9,7 @@ import type { BlockPattern } from '../types.js';
 // =============================================================================
 
 export const REVERSE_SHELL_PATTERNS: BlockPattern[] = [
+  // Bash variants
   {
     name: 'bash_reverse_shell',
     pattern: /bash\s+-i\s+>&\s*\/dev\/tcp/i,
@@ -16,11 +17,56 @@ export const REVERSE_SHELL_PATTERNS: BlockPattern[] = [
     description: 'Bash reverse shell via /dev/tcp',
   },
   {
+    name: 'sh_reverse_shell',
+    pattern: /\bsh\s+-i\s+>&\s*\/dev\/tcp/i,
+    severity: 'critical',
+    description: 'sh reverse shell via /dev/tcp',
+  },
+  {
+    name: 'zsh_reverse_shell',
+    pattern: /zsh\s+-i\s+>&\s*\/dev\/tcp/i,
+    severity: 'critical',
+    description: 'Zsh reverse shell via /dev/tcp',
+  },
+  {
+    name: 'ksh_reverse_shell',
+    pattern: /ksh\s+-i\s+>&\s*\/dev\/tcp/i,
+    severity: 'critical',
+    description: 'Ksh reverse shell via /dev/tcp',
+  },
+  {
+    name: 'dash_reverse_shell',
+    pattern: /dash\s+-i\s+>&\s*\/dev\/tcp/i,
+    severity: 'critical',
+    description: 'Dash reverse shell via /dev/tcp',
+  },
+  // Generic /dev/tcp pattern (catches variable expansion bypasses)
+  {
+    name: 'dev_tcp_redirect',
+    pattern: />\s*&?\s*\/dev\/tcp\//i,
+    severity: 'critical',
+    description: 'Redirection to /dev/tcp (reverse shell indicator)',
+  },
+  // Netcat variants
+  {
     name: 'netcat_reverse_shell',
     pattern: /nc\s+.*-e\s+(\/bin\/)?(ba)?sh/i,
     severity: 'critical',
     description: 'Netcat reverse shell with -e flag',
   },
+  {
+    name: 'netcat_c_flag',
+    pattern: /nc\s+.*-c\s+(\/bin\/)?(ba)?sh/i,
+    severity: 'critical',
+    description: 'Netcat reverse shell with -c flag',
+  },
+  {
+    name: 'ncat_reverse_shell',
+    pattern: /ncat\s+.*-e\s+(\/bin\/)?(ba)?sh/i,
+    severity: 'critical',
+    description: 'Ncat reverse shell',
+  },
+  // Python reverse shells
   {
     name: 'python_reverse_shell',
     pattern: /python[23]?\s+.*-c\s+.*socket.*connect/i,
@@ -28,14 +74,56 @@ export const REVERSE_SHELL_PATTERNS: BlockPattern[] = [
     description: 'Python socket-based reverse shell',
   },
   {
+    name: 'python_pty_shell',
+    pattern: /python[23]?\s+.*-c\s+.*pty\.spawn/i,
+    severity: 'critical',
+    description: 'Python PTY spawn (shell upgrade)',
+  },
+  // Perl reverse shell
+  {
     name: 'perl_reverse_shell',
     pattern: /perl\s+.*(-e\s+.*)?(['"])?use\s+Socket/i,
     severity: 'critical',
     description: 'Perl socket-based reverse shell',
   },
+  // Ruby reverse shell
+  {
+    name: 'ruby_reverse_shell',
+    pattern: /ruby\s+.*-rsocket\s+-e/i,
+    severity: 'critical',
+    description: 'Ruby socket-based reverse shell',
+  },
+  {
+    name: 'ruby_socket_reverse',
+    pattern: /ruby\s+.*-e\s+.*TCPSocket/i,
+    severity: 'critical',
+    description: 'Ruby TCPSocket reverse shell',
+  },
+  // PHP reverse shell
+  {
+    name: 'php_reverse_shell',
+    pattern: /php\s+.*-r\s+.*fsockopen/i,
+    severity: 'critical',
+    description: 'PHP fsockopen reverse shell',
+  },
+  // Socat
+  {
+    name: 'socat_reverse_shell',
+    pattern: /socat\s+.*exec.*sh/i,
+    severity: 'critical',
+    description: 'Socat reverse shell',
+  },
+  // Telnet reverse shell
+  {
+    name: 'telnet_reverse_shell',
+    pattern: /telnet\s+.*\|\s*\/bin\/(ba)?sh/i,
+    severity: 'critical',
+    description: 'Telnet-based reverse shell',
+  },
 ];
 
 export const DATA_EXFIL_PATTERNS: BlockPattern[] = [
+  // Environment variable exfiltration via curl
   {
     name: 'curl_api_key',
     pattern: /curl.*\$\{?[A-Z_]*KEY/i,
@@ -66,6 +154,7 @@ export const DATA_EXFIL_PATTERNS: BlockPattern[] = [
     severity: 'critical',
     description: 'curl with credential environment variable',
   },
+  // Environment variable exfiltration via wget
   {
     name: 'wget_key',
     pattern: /wget.*\$\{?[A-Z_]*KEY/i,
@@ -84,6 +173,7 @@ export const DATA_EXFIL_PATTERNS: BlockPattern[] = [
     severity: 'critical',
     description: 'wget with token environment variable',
   },
+  // POST data with env vars
   {
     name: 'curl_data_env',
     pattern: /curl\s+.*(-d|--data|--data-raw)\s+.*\$\{?[A-Z_]/i,
@@ -101,6 +191,77 @@ export const DATA_EXFIL_PATTERNS: BlockPattern[] = [
     pattern: /wget\s+.*--post-data.*\$\{?[A-Z_]/i,
     severity: 'critical',
     description: 'wget POST with environment variable',
+  },
+  // Full environment dump
+  {
+    name: 'env_pipe_curl',
+    pattern: /\benv\b.*\|\s*curl/i,
+    severity: 'critical',
+    description: 'Environment dump piped to curl',
+  },
+  {
+    name: 'printenv_pipe',
+    pattern: /printenv.*\|\s*(curl|nc|wget)/i,
+    severity: 'critical',
+    description: 'Printenv piped to network command',
+  },
+  {
+    name: 'env_pipe_nc',
+    pattern: /\benv\b.*\|\s*nc\b/i,
+    severity: 'critical',
+    description: 'Environment dump piped to netcat',
+  },
+  // Sensitive file exfiltration
+  {
+    name: 'ssh_key_exfil',
+    pattern: /cat\s+.*\.ssh\/(id_rsa|id_ed25519|id_dsa).*\|\s*(curl|nc|wget)/i,
+    severity: 'critical',
+    description: 'SSH private key exfiltration',
+  },
+  {
+    name: 'aws_creds_exfil',
+    pattern: /cat\s+.*\.aws\/(credentials|config).*\|\s*(curl|nc|wget)/i,
+    severity: 'critical',
+    description: 'AWS credentials exfiltration',
+  },
+  {
+    name: 'file_stdin_curl',
+    pattern: /curl\s+.*-d\s*@-/i,
+    severity: 'high',
+    description: 'curl reading from stdin (potential data exfil)',
+  },
+  // Reverse copy tools
+  {
+    name: 'scp_outbound',
+    pattern: /scp\s+.*[^@]+@[^:]+:/i,
+    severity: 'high',
+    description: 'scp to remote host (potential data exfil)',
+  },
+  {
+    name: 'rsync_outbound',
+    pattern: /rsync\s+.*[^@]+@/i,
+    severity: 'high',
+    description: 'rsync to remote host (potential data exfil)',
+  },
+  // Backtick command substitution with env vars
+  {
+    name: 'backtick_env_exfil',
+    pattern: /curl.*`.*\$[A-Z_]+.*`/i,
+    severity: 'critical',
+    description: 'curl with backtick command substitution containing env var',
+  },
+  // DNS tunneling patterns
+  {
+    name: 'dns_tunnel_dig',
+    pattern: /dig\s+.*\$[A-Z_]/i,
+    severity: 'high',
+    description: 'DNS query with environment variable (potential DNS tunnel)',
+  },
+  {
+    name: 'dns_tunnel_nslookup',
+    pattern: /nslookup\s+.*\$[A-Z_]/i,
+    severity: 'high',
+    description: 'nslookup with environment variable (potential DNS tunnel)',
   },
 ];
 

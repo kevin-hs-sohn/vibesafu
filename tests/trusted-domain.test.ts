@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isTrustedUrl, extractUrls, isDomainTrusted } from '../src/config/domains.js';
+import { isTrustedUrl, extractUrls, isDomainTrusted, isRiskySubdomain } from '../src/config/domains.js';
 
 describe('Trusted Domain', () => {
   // ==========================================================================
@@ -79,6 +79,45 @@ describe('Trusted Domain', () => {
 
       it('should NOT trust localhost', () => {
         expect(isTrustedUrl('http://localhost:3000/script.sh')).toBe(false);
+      });
+    });
+
+    // Risky subdomains that allow user-generated content
+    describe('Risky Subdomains (User-Generated Content)', () => {
+      it('should NOT trust S3 bucket URLs', () => {
+        expect(isTrustedUrl('https://malicious-bucket.s3.amazonaws.com/evil.sh')).toBe(false);
+      });
+
+      it('should NOT trust S3 regional bucket URLs', () => {
+        expect(isTrustedUrl('https://bucket.s3-us-west-2.amazonaws.com/script.sh')).toBe(false);
+      });
+
+      it('should NOT trust GitHub Pages', () => {
+        expect(isTrustedUrl('https://attacker.github.io/payload.js')).toBe(false);
+      });
+
+      it('should NOT trust Vercel app deployments', () => {
+        expect(isTrustedUrl('https://malicious-app.vercel.app/script.sh')).toBe(false);
+      });
+
+      it('should NOT trust Netlify app deployments', () => {
+        expect(isTrustedUrl('https://evil-site.netlify.app/payload.sh')).toBe(false);
+      });
+
+      it('should NOT trust Heroku apps', () => {
+        expect(isTrustedUrl('https://suspicious-app.herokuapp.com/install.sh')).toBe(false);
+      });
+
+      it('should NOT trust GitLab Pages', () => {
+        expect(isTrustedUrl('https://attacker.gitlab.io/evil.sh')).toBe(false);
+      });
+
+      it('should NOT trust Firebase hosting', () => {
+        expect(isTrustedUrl('https://malicious-site.web.app/script.js')).toBe(false);
+      });
+
+      it('should NOT trust Cloudflare Pages', () => {
+        expect(isTrustedUrl('https://evil.pages.dev/payload.sh')).toBe(false);
       });
     });
 
