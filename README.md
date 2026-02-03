@@ -8,38 +8,61 @@ Maintain flow without `--dangerously-skip-permissions` while automatically block
 
 ## Quick Start
 
-### 1. Install the hook (one-time setup)
+### Option A: Install from npm (after publishing)
 
 ```bash
-npx vibesafe install
+# Install globally
+npm install -g vibesafe
+
+# Install the hook
+vibesafe install
+
+# Configure API key (optional but recommended)
+vibesafe config
 ```
 
-This adds VibeSafe to your Claude Code settings (`~/.claude/settings.json`).
-
-### 2. Configure API key (optional, recommended)
+### Option B: Install from source
 
 ```bash
-npx vibesafe config
+# Clone the repository
+git clone https://github.com/kevin-hs-sohn/vibesafe.git
+cd vibesafe
+
+# Install dependencies and build
+pnpm install
+pnpm build
+
+# Link globally (makes 'vibesafe' command available)
+npm link
+
+# Install the hook
+vibesafe install
+
+# Configure API key (optional but recommended)
+vibesafe config
 ```
 
-Set your Anthropic API key to enable LLM-based security analysis (Haiku triage + Sonnet review).
+### After Installation
 
-Without an API key, VibeSafe still works with:
+1. **Restart Claude Code**
+   ```bash
+   # If using CLI
+   claude
+
+   # If using VS Code extension, restart the extension
+   ```
+
+2. **That's it!** VibeSafe now automatically protects your Claude Code sessions.
+
+### What You Get
+
+Without an API key:
 - Instant blocking (reverse shells, data exfiltration, crypto mining)
 - Trusted domain whitelist (github.com, bun.sh, etc.)
 
-### 3. Restart Claude Code
-
-```bash
-# If using CLI
-claude
-
-# If using VS Code extension, restart the extension
-```
-
-### 4. That's it!
-
-VibeSafe now automatically protects your Claude Code sessions. No additional commands needed - just use Claude Code normally.
+With an API key (recommended):
+- Intelligent LLM-based security analysis
+- Haiku triage + Sonnet deep review
 
 ## How It Works
 
@@ -101,16 +124,16 @@ Commands downloading from these domains bypass LLM checks:
 
 ```bash
 # Install hook to Claude Code
-npx vibesafe install
+vibesafe install
 
 # Configure API key and settings
-npx vibesafe config
+vibesafe config
 
 # Uninstall hook
-npx vibesafe uninstall
+vibesafe uninstall
 
 # Manual check (for testing)
-echo '{"tool_name":"Bash","tool_input":{"command":"npm install lodash"}}' | npx vibesafe check
+echo '{"tool_name":"Bash","tool_input":{"command":"npm install lodash"}}' | vibesafe check
 ```
 
 ## Configuration
@@ -210,7 +233,7 @@ Most commands are handled by pattern matching or trusted domain checks without L
 1. Review why it was blocked (shown in the message)
 2. If it's a false positive, you can:
    - Add the domain to your trusted list in config
-   - Temporarily uninstall: `npx vibesafe uninstall`
+   - Temporarily uninstall: `vibesafe uninstall`
    - Report the issue for pattern improvement
 
 ### Can I use this with VS Code Claude extension?
