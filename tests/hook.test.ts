@@ -76,27 +76,47 @@ describe('Hook Handler', () => {
   });
 
   // ==========================================================================
-  // Trusted Domain - Allow script from trusted source
+  // Trusted Domain - ONLY for network-only operations, NOT script execution
   // ==========================================================================
   describe('Trusted Domain', () => {
-    it('should allow curl from bun.sh', async () => {
+    // SECURITY FIX: Script execution (curl | bash) should NEVER be auto-approved,
+    // even from trusted domains, because anyone can upload malicious scripts to GitHub/npm/etc.
+    it('should NOT auto-approve curl | bash even from trusted bun.sh', async () => {
       const input = createTestInput('curl -fsSL https://bun.sh/install | bash');
       const result = await processPermissionRequest(input);
 
-      expect(result.decision).toBe('allow');
-      expect(result.source).toBe('trusted-domain');
+      // Should require review, not auto-approve
+      expect(result.decision).toBe('needs-review');
+      expect(result.checkpoint?.type).toBe('script_execution');
     });
 
-    it('should allow curl from github.com', async () => {
+    it('should NOT auto-approve curl | bash even from trusted github.com', async () => {
       const input = createTestInput('curl -fsSL https://raw.githubusercontent.com/user/repo/main/install.sh | bash');
+      const result = await processPermissionRequest(input);
+
+      expect(result.decision).toBe('needs-review');
+      expect(result.checkpoint?.type).toBe('script_execution');
+    });
+
+    it('should NOT auto-approve curl | sh even from trusted docker.com', async () => {
+      const input = createTestInput('curl -fsSL https://get.docker.com | sh');
+      const result = await processPermissionRequest(input);
+
+      expect(result.decision).toBe('needs-review');
+      expect(result.checkpoint?.type).toBe('script_execution');
+    });
+
+    // Network-only operations from trusted domains can still be auto-approved
+    it('should allow network-only curl from trusted github.com', async () => {
+      const input = createTestInput('curl https://api.github.com/users/octocat');
       const result = await processPermissionRequest(input);
 
       expect(result.decision).toBe('allow');
       expect(result.source).toBe('trusted-domain');
     });
 
-    it('should allow curl from get.docker.com', async () => {
-      const input = createTestInput('curl -fsSL https://get.docker.com | sh');
+    it('should allow wget download from trusted npmjs.com', async () => {
+      const input = createTestInput('wget https://registry.npmjs.com/lodash');
       const result = await processPermissionRequest(input);
 
       expect(result.decision).toBe('allow');

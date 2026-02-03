@@ -41,7 +41,7 @@ export interface ProcessResult {
  * 1. Non-Bash tools → Allow (only analyze Bash commands)
  * 2. Instant Block → Deny immediately
  * 3. No Checkpoint → Allow (safe command)
- * 4. Trusted Domain → Allow (script from trusted source)
+ * 4. Trusted Domain → Allow for network-only (NOT script execution)
  * 5. Checkpoint Triggered → LLM review (Haiku → Sonnet if escalated)
  */
 export async function processPermissionRequest(
@@ -79,8 +79,10 @@ export async function processPermissionRequest(
     };
   }
 
-  // Step 4: For script execution or network, check trusted domains
-  if (checkpoint.type === 'script_execution' || checkpoint.type === 'network') {
+  // Step 4: For network operations (not script execution), check trusted domains
+  // SECURITY: script_execution (curl | bash) is NEVER auto-approved, even from trusted domains
+  // because anyone can upload malicious scripts to GitHub/npm/etc.
+  if (checkpoint.type === 'network') {
     const domainResult = checkTrustedDomains(command);
     if (domainResult.allTrusted && domainResult.urls.length > 0) {
       return {
