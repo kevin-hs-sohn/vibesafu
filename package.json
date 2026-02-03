@@ -1,0 +1,40 @@
+{
+  "name": "vibesafe",
+  "version": "0.1.0",
+  "description": "Claude Code Security Guard - Permission request interceptor with LLM-powered security analysis",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "vibesafe": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsup src/index.ts --watch --format esm",
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "verify": "pnpm typecheck && pnpm test"
+  },
+  "keywords": [
+    "claude-code",
+    "security",
+    "hook",
+    "permission",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}
