@@ -2,8 +2,8 @@
 
 ## Current Session
 - Date: 2026-02-03
-- Focus: 프로젝트 초기화
-- Status: 진행 중
+- Focus: Core Guard 모듈 구현 (instant-block, checkpoint, trusted-domain)
+- Status: Phase 4.5 완료 - 105 tests passing
 
 ## Progress Tracker
 
@@ -20,19 +20,23 @@
 - [x] 초기 커밋
 
 ### Phase 2: Core Types & Utils
-- [ ] types.ts
+- [x] types.ts
 - [ ] utils/logger.ts
-- [ ] config/patterns.ts
-- [ ] config/domains.ts
+- [x] config/patterns.ts
+- [x] config/domains.ts
 
 ### Phase 3: Instant Block (MVP)
-- [ ] instant-block.test.ts
-- [ ] instant-block.ts 구현
-- [ ] False positive 테스트
+- [x] instant-block.test.ts (41 tests)
+- [x] instant-block.ts 구현
+- [x] False positive 테스트
 
 ### Phase 4: Trusted Domain
-- [ ] trusted-domain.test.ts
-- [ ] trusted-domain.ts 구현
+- [x] trusted-domain.test.ts (32 tests)
+- [x] trusted-domain.ts 구현
+
+### Phase 4.5: Checkpoint Detection
+- [x] checkpoint.test.ts (32 tests)
+- [x] checkpoint.ts 구현
 
 ### Phase 5: CLI Commands
 - [ ] install 명령
