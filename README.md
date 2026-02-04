@@ -7,10 +7,10 @@ When you use `--dangerously-skip-permissions`, Claude Code can execute commands 
 VibeSafu sits between Claude and your shell, automatically flagging anything a human developer would find suspicious.
 
 ### Auto-Approval (Safe Commands)
-![VibeSafu Auto-Approval](vibesafu-demo-1.png)
+![VibeSafu Auto-Approval](vibesafu-demo-approve.png)
 
 ### Auto-Denial (Risky Commands)
-![VibeSafu Auto-Denial](vibesafu-demo.png)
+![VibeSafu Auto-Denial](vibesafu-dem-reject.png)
 
 ## What's the Goal?
 
