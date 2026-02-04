@@ -25,10 +25,10 @@ describe('Hook Handler', () => {
       const result = await processPermissionRequest(input);
 
       expect(result.decision).toBe('needs-review');
-      expect(result.reason).toContain('CRITICAL RISK');
+      expect(result.reason).toContain('HIGH RISK');
       expect(result.source).toBe('high-risk');
       expect(result.userMessage).toContain('reverse shell');
-      expect(result.userMessage).toContain('Proceed at your own risk');
+      expect(result.userMessage).toContain('Only proceed if you know what you\'re doing');
     });
 
     it('should warn on data exfiltration with risk explanation', async () => {
@@ -37,16 +37,16 @@ describe('Hook Handler', () => {
 
       expect(result.decision).toBe('needs-review');
       expect(result.source).toBe('high-risk');
-      expect(result.userMessage).toContain('Risk:');
+      expect(result.userMessage).toContain('Potential risk:');
     });
 
-    it('should warn on crypto miner with legitimate uses', async () => {
+    it('should warn on crypto miner with common uses', async () => {
       const input = createTestInput('./xmrig -o pool.mining.com');
       const result = await processPermissionRequest(input);
 
       expect(result.decision).toBe('needs-review');
       expect(result.source).toBe('high-risk');
-      expect(result.userMessage).toContain('Legitimate uses:');
+      expect(result.userMessage).toContain('Common uses:');
     });
   });
 
@@ -194,11 +194,11 @@ describe('Hook Handler', () => {
   });
 
   // ==========================================================================
-  // Non-Bash Tools - File Security
+  // Non-Bash Tools - File Security (Warning instead of blocking)
   // ==========================================================================
   describe('File Tools Security', () => {
     describe('Write Tool', () => {
-      it('should BLOCK writing to ~/.ssh/authorized_keys', async () => {
+      it('should WARN when writing to ~/.ssh/authorized_keys', async () => {
         const input: PermissionRequestInput = {
           session_id: 'test-session',
           transcript_path: '/tmp/transcript',
@@ -210,11 +210,12 @@ describe('Hook Handler', () => {
         };
         const result = await processPermissionRequest(input);
 
-        expect(result.decision).toBe('deny');
+        expect(result.decision).toBe('needs-review');
         expect(result.reason).toContain('SSH');
+        expect(result.userMessage).toContain('Only proceed if you know what you\'re doing');
       });
 
-      it('should BLOCK writing to ~/.bashrc', async () => {
+      it('should WARN when writing to ~/.bashrc', async () => {
         const input: PermissionRequestInput = {
           session_id: 'test-session',
           transcript_path: '/tmp/transcript',
@@ -222,11 +223,12 @@ describe('Hook Handler', () => {
           permission_mode: 'default',
           hook_event_name: 'PermissionRequest',
           tool_name: 'Write',
-          tool_input: { file_path: '~/.bashrc', content: 'malicious code' },
+          tool_input: { file_path: '~/.bashrc', content: 'alias ll="ls -la"' },
         };
         const result = await processPermissionRequest(input);
 
-        expect(result.decision).toBe('deny');
+        expect(result.decision).toBe('needs-review');
+        expect(result.userMessage).toContain('Common uses:');
       });
 
       it('should ALLOW writing to normal project files', async () => {
@@ -246,7 +248,7 @@ describe('Hook Handler', () => {
     });
 
     describe('Read Tool', () => {
-      it('should BLOCK reading SSH private keys', async () => {
+      it('should WARN when reading SSH private keys', async () => {
         const input: PermissionRequestInput = {
           session_id: 'test-session',
           transcript_path: '/tmp/transcript',
@@ -258,11 +260,12 @@ describe('Hook Handler', () => {
         };
         const result = await processPermissionRequest(input);
 
-        expect(result.decision).toBe('deny');
+        expect(result.decision).toBe('needs-review');
         expect(result.reason).toContain('SSH');
+        expect(result.userMessage).toContain('Potential risk:');
       });
 
-      it('should BLOCK reading .env files', async () => {
+      it('should WARN when reading .env files', async () => {
         const input: PermissionRequestInput = {
           session_id: 'test-session',
           transcript_path: '/tmp/transcript',
@@ -274,7 +277,8 @@ describe('Hook Handler', () => {
         };
         const result = await processPermissionRequest(input);
 
-        expect(result.decision).toBe('deny');
+        expect(result.decision).toBe('needs-review');
+        expect(result.userMessage).toContain('Environment file');
       });
 
       it('should ALLOW reading normal files', async () => {
@@ -294,7 +298,7 @@ describe('Hook Handler', () => {
     });
 
     describe('Edit Tool', () => {
-      it('should BLOCK editing /etc files', async () => {
+      it('should WARN when editing /etc files', async () => {
         const input: PermissionRequestInput = {
           session_id: 'test-session',
           transcript_path: '/tmp/transcript',
@@ -302,11 +306,12 @@ describe('Hook Handler', () => {
           permission_mode: 'default',
           hook_event_name: 'PermissionRequest',
           tool_name: 'Edit',
-          tool_input: { file_path: '/etc/passwd', old_string: 'a', new_string: 'b' },
+          tool_input: { file_path: '/etc/hosts', old_string: 'a', new_string: 'b' },
         };
         const result = await processPermissionRequest(input);
 
-        expect(result.decision).toBe('deny');
+        expect(result.decision).toBe('needs-review');
+        expect(result.reason).toContain('/etc');
       });
     });
 
