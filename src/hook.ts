@@ -9,7 +9,7 @@ import type {
   PermissionRequestOutput,
   SecurityCheckpoint,
 } from './types.js';
-import { checkInstantBlock } from './guard/instant-block.js';
+import { checkHighRiskPatterns } from './guard/instant-block.js';
 import { checkInstantAllow } from './guard/instant-allow.js';
 import { detectCheckpoint } from './guard/checkpoint.js';
 import { checkTrustedDomains } from './guard/trusted-domain.js';
@@ -22,6 +22,7 @@ export type HookDecision = 'allow' | 'deny' | 'needs-review';
 export type DecisionSource =
   | 'instant-allow'
   | 'instant-block'
+  | 'high-risk'
   | 'trusted-domain'
   | 'no-checkpoint'
   | 'checkpoint'
@@ -92,13 +93,19 @@ export async function processPermissionRequest(
     };
   }
 
-  // Step 4: Check for instant block patterns
-  const blockResult = checkInstantBlock(command);
-  if (blockResult.blocked) {
+  // Step 4: Check for high-risk patterns (warn instead of block)
+  const highRisk = checkHighRiskPatterns(command);
+  if (highRisk.detected) {
+    const severityLabel = highRisk.severity === 'critical' ? 'CRITICAL RISK' : 'HIGH RISK';
+    const legitimateUsesText = highRisk.legitimateUses?.length
+      ? `\nLegitimate uses: ${highRisk.legitimateUses.join(', ')}`
+      : '';
+
     return {
-      decision: 'deny',
-      reason: blockResult.reason ?? 'Blocked by instant block',
-      source: 'instant-block',
+      decision: 'needs-review',
+      reason: `[${severityLabel}] ${highRisk.description}`,
+      source: 'high-risk',
+      userMessage: `[${severityLabel}] ${highRisk.description}\n\nRisk: ${highRisk.risk}${legitimateUsesText}\n\nProceed at your own risk.`,
     };
   }
 
