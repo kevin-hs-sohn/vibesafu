@@ -218,3 +218,40 @@ export function containsUrlShortener(command: string): { found: boolean; shorten
     shortenerUrls,
   };
 }
+
+/**
+ * Risky URL patterns that should trigger deeper review even from trusted domains
+ * These patterns indicate user-controlled content that could be malicious
+ */
+const RISKY_URL_PATTERNS: RegExp[] = [
+  // Raw file content from GitHub - can be any user's code
+  /raw\.githubusercontent\.com/i,
+  // GitHub gist raw content
+  /gist\.github\.com\/[^/]+\/[^/]+\/raw/i,
+  // GitHub releases downloads - binary files from any user
+  /github\.com\/[^/]+\/[^/]+\/releases\/download/i,
+  // GitHub objects (blobs, etc.)
+  /objects\.githubusercontent\.com/i,
+  // Installer script patterns (get.*.sh)
+  /\/get\.[^/]+\.sh/i,
+];
+
+/**
+ * Check if a URL matches risky patterns that need deeper review
+ * Even if the domain is trusted, these URLs serve user-controlled content
+ */
+export function isRiskyUrlPattern(url: string): boolean {
+  return RISKY_URL_PATTERNS.some((pattern) => pattern.test(url));
+}
+
+/**
+ * Check if command contains any risky URL patterns
+ */
+export function containsRiskyUrlPattern(command: string): { found: boolean; riskyUrls: string[] } {
+  const urls = extractUrls(command);
+  const riskyUrls = urls.filter((url) => isRiskyUrlPattern(url));
+  return {
+    found: riskyUrls.length > 0,
+    riskyUrls,
+  };
+}
