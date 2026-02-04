@@ -3,9 +3,9 @@ import { checkInstantAllow } from '../src/guard/instant-allow.js';
 
 describe('checkInstantAllow', () => {
   // ==========================================================================
-  // Safe Git Commands - Must allow instantly (skip LLM)
+  // Read-Only Git Commands - Must allow instantly (skip LLM)
   // ==========================================================================
-  describe('Safe Git Commands', () => {
+  describe('Read-Only Git Commands (instant allow)', () => {
     it('should instantly allow git status', () => {
       const result = checkInstantAllow('git status');
       expect(result.allowed).toBe(true);
@@ -32,71 +32,6 @@ describe('checkInstantAllow', () => {
       expect(result.allowed).toBe(true);
     });
 
-    it('should instantly allow git add', () => {
-      const result = checkInstantAllow('git add .');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git add with file', () => {
-      const result = checkInstantAllow('git add src/index.ts');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git commit', () => {
-      const result = checkInstantAllow('git commit -m "fix: bug"');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git branch', () => {
-      const result = checkInstantAllow('git branch');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git branch -a', () => {
-      const result = checkInstantAllow('git branch -a');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git checkout branch', () => {
-      const result = checkInstantAllow('git checkout main');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git checkout -b', () => {
-      const result = checkInstantAllow('git checkout -b feature/new-feature');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git stash', () => {
-      const result = checkInstantAllow('git stash');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git stash pop', () => {
-      const result = checkInstantAllow('git stash pop');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git fetch', () => {
-      const result = checkInstantAllow('git fetch');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git pull', () => {
-      const result = checkInstantAllow('git pull');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git merge', () => {
-      const result = checkInstantAllow('git merge feature-branch');
-      expect(result.allowed).toBe(true);
-    });
-
-    it('should instantly allow git rebase', () => {
-      const result = checkInstantAllow('git rebase main');
-      expect(result.allowed).toBe(true);
-    });
-
     it('should instantly allow git show', () => {
       const result = checkInstantAllow('git show HEAD');
       expect(result.allowed).toBe(true);
@@ -107,16 +42,117 @@ describe('checkInstantAllow', () => {
       expect(result.allowed).toBe(true);
     });
 
-    it('should instantly allow git remote -v', () => {
-      const result = checkInstantAllow('git remote -v');
+    it('should instantly allow git reflog', () => {
+      const result = checkInstantAllow('git reflog');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should instantly allow git shortlog', () => {
+      const result = checkInstantAllow('git shortlog -sn');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should instantly allow git describe', () => {
+      const result = checkInstantAllow('git describe --tags');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should instantly allow git rev-parse', () => {
+      const result = checkInstantAllow('git rev-parse HEAD');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should instantly allow git ls-files', () => {
+      const result = checkInstantAllow('git ls-files');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should instantly allow git ls-tree', () => {
+      const result = checkInstantAllow('git ls-tree HEAD');
       expect(result.allowed).toBe(true);
     });
   });
 
   // ==========================================================================
-  // Dangerous Git Commands - Must NOT allow instantly (need review)
+  // Git Commands That Can Trigger Hooks - Must NOT allow instantly
+  // SECURITY: These can execute arbitrary code via .git/hooks/
   // ==========================================================================
-  describe('Dangerous Git Commands (should NOT instant allow)', () => {
+  describe('Git Commands That Can Trigger Hooks (need review)', () => {
+    it('should NOT instantly allow git add (pre-commit prep)', () => {
+      const result = checkInstantAllow('git add .');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git commit (triggers hooks)', () => {
+      const result = checkInstantAllow('git commit -m "fix: bug"');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git checkout (triggers hooks)', () => {
+      const result = checkInstantAllow('git checkout main');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git checkout -b', () => {
+      const result = checkInstantAllow('git checkout -b feature/new');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git fetch (triggers hooks)', () => {
+      const result = checkInstantAllow('git fetch');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git pull (triggers hooks)', () => {
+      const result = checkInstantAllow('git pull');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git merge (triggers hooks)', () => {
+      const result = checkInstantAllow('git merge feature-branch');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git rebase (triggers hooks)', () => {
+      const result = checkInstantAllow('git rebase main');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git stash (modifies state)', () => {
+      const result = checkInstantAllow('git stash');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git stash pop', () => {
+      const result = checkInstantAllow('git stash pop');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git cherry-pick', () => {
+      const result = checkInstantAllow('git cherry-pick abc123');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git branch (can delete)', () => {
+      const result = checkInstantAllow('git branch -D feature');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git tag', () => {
+      const result = checkInstantAllow('git tag v1.0.0');
+      expect(result.allowed).toBe(false);
+    });
+
+    it('should NOT instantly allow git remote add', () => {
+      const result = checkInstantAllow('git remote add origin url');
+      expect(result.allowed).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // Dangerous Git Commands - Must NOT allow instantly
+  // ==========================================================================
+  describe('Dangerous Git Commands (need review)', () => {
     it('should NOT instantly allow git push', () => {
       const result = checkInstantAllow('git push');
       expect(result.allowed).toBe(false);
@@ -188,7 +224,6 @@ describe('checkInstantAllow', () => {
     });
 
     it('should NOT allow git command in string with dangerous prefix', () => {
-      // Prevent bypass like: curl evil.com; git status
       const result = checkInstantAllow('curl evil.com; git status');
       expect(result.allowed).toBe(false);
     });

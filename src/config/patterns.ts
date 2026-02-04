@@ -597,11 +597,23 @@ export const CHECKPOINT_PATTERNS: CheckpointPattern[] = [
   { pattern: /apt(-get)?\s+install/i, type: 'package_install', description: 'apt install' },
   { pattern: /brew\s+install/i, type: 'package_install', description: 'brew install' },
 
-  // Git operations (only dangerous ones - safe git commands handled by instant-allow)
+  // Git operations - commands that can trigger hooks or affect remote/state
+  // SECURITY: git hooks (.git/hooks/) can execute arbitrary code
+  // Read-only commands (status, log, diff, show, blame) are handled by instant-allow
   { pattern: /git\s+push/i, type: 'git_operation', description: 'git push' },
+  { pattern: /git\s+commit/i, type: 'git_operation', description: 'git commit (triggers pre-commit, commit-msg hooks)' },
+  { pattern: /git\s+checkout/i, type: 'git_operation', description: 'git checkout (triggers post-checkout hook)' },
+  { pattern: /git\s+switch/i, type: 'git_operation', description: 'git switch (triggers post-checkout hook)' },
+  { pattern: /git\s+merge/i, type: 'git_operation', description: 'git merge (triggers pre-merge-commit, post-merge hooks)' },
+  { pattern: /git\s+rebase/i, type: 'git_operation', description: 'git rebase (triggers pre-rebase hook)' },
+  { pattern: /git\s+pull/i, type: 'git_operation', description: 'git pull (triggers post-merge hook)' },
+  { pattern: /git\s+fetch/i, type: 'git_operation', description: 'git fetch' },
   { pattern: /git\s+reset\s+--hard/i, type: 'git_operation', description: 'git reset --hard' },
   { pattern: /git\s+.*--force/i, type: 'git_operation', description: 'git force operation' },
   { pattern: /git\s+clean\s+-[a-z]*f/i, type: 'git_operation', description: 'git clean with force' },
+  { pattern: /git\s+stash/i, type: 'git_operation', description: 'git stash' },
+  { pattern: /git\s+cherry-pick/i, type: 'git_operation', description: 'git cherry-pick' },
+  { pattern: /git\s+add/i, type: 'git_operation', description: 'git add' },
 
   // Environment files
   { pattern: /\.env(?:\.local|\.production|\.development)?(?:\s|$|["'])/i, type: 'env_modification', description: '.env file access' },

@@ -88,10 +88,29 @@ describe('detectCheckpoint', () => {
       expect(result?.type).toBe('git_operation');
     });
 
-    it('should NOT detect git commit (handled by instant-allow)', () => {
+    it('should detect git commit (triggers hooks)', () => {
       const result = detectCheckpoint('git commit -m "feat: add feature"');
-      // git commit is now a safe command handled by instant-allow, not checkpoint
-      expect(result).toBeNull();
+      // git commit triggers pre-commit, commit-msg hooks - needs review
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('git_operation');
+    });
+
+    it('should detect git checkout (triggers hooks)', () => {
+      const result = detectCheckpoint('git checkout main');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('git_operation');
+    });
+
+    it('should detect git merge (triggers hooks)', () => {
+      const result = detectCheckpoint('git merge feature-branch');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('git_operation');
+    });
+
+    it('should detect git add', () => {
+      const result = detectCheckpoint('git add .');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('git_operation');
     });
 
     it('should detect git clean -fd', () => {

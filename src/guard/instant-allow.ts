@@ -10,27 +10,23 @@ export interface InstantAllowResult {
 }
 
 /**
- * Safe git commands that can be instantly allowed
- * These are local operations that don't affect remote or cause data loss
+ * Safe git commands that can be instantly allowed (READ-ONLY ONLY)
+ *
+ * SECURITY: Only pure read-only commands are allowed here.
+ * Commands that can trigger git hooks (commit, checkout, merge, etc.)
+ * are NOT safe because .git/hooks/ scripts can execute arbitrary code.
+ *
+ * Excluded (can trigger hooks or modify state):
+ * - add, commit, checkout, switch, restore
+ * - fetch, pull, push, merge, rebase, cherry-pick
+ * - stash, tag, branch (with args), remote (with args)
  */
 const SAFE_GIT_COMMANDS = [
   'status',
   'log',
   'diff',
-  'add',
-  'commit',
-  'branch',
-  'checkout',
-  'stash',
-  'fetch',
-  'pull',
-  'merge',
-  'rebase',
   'show',
   'blame',
-  'remote',
-  'tag',
-  'cherry-pick',
   'reflog',
   'shortlog',
   'describe',
