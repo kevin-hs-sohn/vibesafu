@@ -191,6 +191,82 @@ describe('detectCheckpoint', () => {
   });
 
   // ==========================================================================
+  // Script Execution via npm run / make
+  // ==========================================================================
+  describe('Script Execution (npm run / make)', () => {
+    it('should detect npm run with script name', () => {
+      const result = detectCheckpoint('npm run build');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('script_execution');
+    });
+
+    it('should detect npm run postinstall', () => {
+      const result = detectCheckpoint('npm run postinstall');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('script_execution');
+    });
+
+    it('should detect npm run with flags', () => {
+      const result = detectCheckpoint('npm run dev -- --port 3000');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('script_execution');
+    });
+
+    it('should detect make command', () => {
+      const result = detectCheckpoint('make');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('script_execution');
+    });
+
+    it('should detect make with target', () => {
+      const result = detectCheckpoint('make build');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('script_execution');
+    });
+
+    it('should detect make with flags', () => {
+      const result = detectCheckpoint('make -j4 all');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('script_execution');
+    });
+  });
+
+  // ==========================================================================
+  // Sensitive File Copy (indirect path bypass)
+  // ==========================================================================
+  describe('Sensitive File Copy', () => {
+    it('should detect cp ~/.ssh/ to another location', () => {
+      const result = detectCheckpoint('cp ~/.ssh/id_rsa /tmp/key.txt');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('file_sensitive');
+    });
+
+    it('should detect cp .env to another location', () => {
+      const result = detectCheckpoint('cp .env /tmp/env.bak');
+      expect(result).not.toBeNull();
+      // Caught by .env pattern (env_modification) or cp pattern (file_sensitive)
+      expect(['file_sensitive', 'env_modification']).toContain(result?.type);
+    });
+
+    it('should detect cp ~/.aws/credentials', () => {
+      const result = detectCheckpoint('cp ~/.aws/credentials /tmp/creds');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('file_sensitive');
+    });
+
+    it('should detect mv ~/.ssh/ (move is also risky)', () => {
+      const result = detectCheckpoint('mv ~/.ssh/id_rsa /tmp/key');
+      expect(result).not.toBeNull();
+      expect(result?.type).toBe('file_sensitive');
+    });
+
+    it('should NOT trigger on cp for normal files', () => {
+      const result = detectCheckpoint('cp package.json package.json.bak');
+      expect(result).toBeNull();
+    });
+  });
+
+  // ==========================================================================
   // No Checkpoint Needed
   // ==========================================================================
   describe('No Checkpoint Needed', () => {

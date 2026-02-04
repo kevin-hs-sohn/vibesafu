@@ -584,6 +584,8 @@ export const CHECKPOINT_PATTERNS: CheckpointPattern[] = [
   { pattern: /chmod\s+\+x/i, type: 'script_execution', description: 'Making file executable' },
   { pattern: /\.\/[^\s]+\.sh/i, type: 'script_execution', description: 'Running shell script' },
   { pattern: /bash\s+[^\s]+\.sh/i, type: 'script_execution', description: 'Running shell script with bash' },
+  { pattern: /npm\s+run\b/i, type: 'script_execution', description: 'npm run (executes package.json scripts)' },
+  { pattern: /\bmake\b/i, type: 'script_execution', description: 'make (executes Makefile)' },
 
   // Network operations
   { pattern: /curl\s+.*?(https?:\/\/[^\s"']+)/i, type: 'network', description: 'curl HTTP request' },
@@ -623,4 +625,9 @@ export const CHECKPOINT_PATTERNS: CheckpointPattern[] = [
   { pattern: /\.aws/i, type: 'file_sensitive', description: 'AWS credentials access' },
   { pattern: /credentials/i, type: 'file_sensitive', description: 'Credentials file access' },
   { pattern: /CLAUDE\.md/i, type: 'file_sensitive', description: 'CLAUDE.md modification' },
+
+  // Sensitive file copy/move (indirect path bypass)
+  { pattern: /(cp|mv)\s+.*\.ssh\//i, type: 'file_sensitive', description: 'Copying/moving SSH files' },
+  { pattern: /(cp|mv)\s+.*\.aws\//i, type: 'file_sensitive', description: 'Copying/moving AWS credentials' },
+  { pattern: /(cp|mv)\s+.*\.env(\s|$)/i, type: 'file_sensitive', description: 'Copying/moving .env file' },
 ];
