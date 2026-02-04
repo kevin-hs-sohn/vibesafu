@@ -9,7 +9,7 @@ import type {
   PermissionRequestOutput,
   SecurityCheckpoint,
 } from './types.js';
-import { checkInstantBlock } from './guard/instant-block.js';
+import { checkHighRiskPatterns } from './guard/instant-block.js';
 import { checkInstantAllow } from './guard/instant-allow.js';
 import { detectCheckpoint } from './guard/checkpoint.js';
 import { checkTrustedDomains } from './guard/trusted-domain.js';
@@ -22,6 +22,7 @@ export type HookDecision = 'allow' | 'deny' | 'needs-review';
 export type DecisionSource =
   | 'instant-allow'
   | 'instant-block'
+  | 'high-risk'
   | 'trusted-domain'
   | 'no-checkpoint'
   | 'checkpoint'
@@ -57,10 +58,16 @@ export async function processPermissionRequest(
   if (input.tool_name === 'Write' || input.tool_name === 'Edit' || input.tool_name === 'Read') {
     const fileCheck = checkFileTool(input.tool_name, input.tool_input);
     if (fileCheck.blocked) {
+      const severityLabel = fileCheck.severity === 'critical' ? 'SENSITIVE FILE' : 'CAUTION';
+      const legitimateUsesText = fileCheck.legitimateUses?.length
+        ? `\nCommon uses: ${fileCheck.legitimateUses.join(', ')}`
+        : '';
+
       return {
-        decision: 'deny',
-        reason: fileCheck.reason ?? 'Blocked: Sensitive file access',
-        source: 'instant-block',
+        decision: 'needs-review',
+        reason: `[${severityLabel}] ${fileCheck.reason}`,
+        source: 'high-risk',
+        userMessage: `[${severityLabel}] ${fileCheck.reason}\n\nPotential risk: ${fileCheck.risk}${legitimateUsesText}\n\nOnly proceed if you know what you're doing.`,
       };
     }
     // File tool with safe path - allow
@@ -92,13 +99,19 @@ export async function processPermissionRequest(
     };
   }
 
-  // Step 4: Check for instant block patterns
-  const blockResult = checkInstantBlock(command);
-  if (blockResult.blocked) {
+  // Step 4: Check for high-risk patterns (warn instead of block)
+  const highRisk = checkHighRiskPatterns(command);
+  if (highRisk.detected) {
+    const severityLabel = highRisk.severity === 'critical' ? 'HIGH RISK' : 'CAUTION';
+    const legitimateUsesText = highRisk.legitimateUses?.length
+      ? `\nCommon uses: ${highRisk.legitimateUses.join(', ')}`
+      : '';
+
     return {
-      decision: 'deny',
-      reason: blockResult.reason ?? 'Blocked by instant block',
-      source: 'instant-block',
+      decision: 'needs-review',
+      reason: `[${severityLabel}] ${highRisk.description}`,
+      source: 'high-risk',
+      userMessage: `[${severityLabel}] ${highRisk.description}\n\nPotential risk: ${highRisk.risk}${legitimateUsesText}\n\nOnly proceed if you know what you're doing.`,
     };
   }
 

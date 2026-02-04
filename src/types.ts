@@ -81,6 +81,8 @@ export interface BlockPattern {
   pattern: RegExp;
   severity: 'critical' | 'high' | 'medium';
   description: string;
+  risk: string;  // What could go wrong
+  legitimateUses?: string[];  // When this might be intentional
 }
 
 // Security Checkpoint
