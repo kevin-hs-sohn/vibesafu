@@ -9,21 +9,62 @@ export const MAX_COMMAND_LENGTH = 2000;
 
 /**
  * Patterns that indicate potential prompt injection attempts
+ *
+ * These detect common prompt injection techniques:
+ * 1. Instruction override: "ignore previous instructions"
+ * 2. Role manipulation: "you are now a", "system:", "assistant:"
+ * 3. Output manipulation: "respond with this json", "return ALLOW"
+ * 4. Context escape: "end of instructions", "for testing purposes"
  */
 const PROMPT_INJECTION_PATTERNS = [
+  // Instruction override attempts
   /ignore\s+(all\s+)?(previous\s+)?instructions/i,
   /forget\s+(all\s+)?(previous\s+)?instructions/i,
   /disregard\s+(all\s+)?(previous\s+)?instructions/i,
+  /override\s+(all\s+)?(previous\s+)?instructions/i,
+  /skip\s+(all\s+)?(security\s+)?checks?/i,
+  /bypass\s+(all\s+)?(security\s+)?checks?/i,
+
+  // Role manipulation
   /you\s+are\s+(now\s+)?a/i,
+  /act\s+as\s+(a\s+)?/i,
+  /pretend\s+(to\s+be|you\s+are)/i,
   /new\s+instructions?:/i,
+  /updated?\s+instructions?:/i,
+
+  // Context/role markers (could be trying to inject fake context)
   /system\s*:/i,
   /assistant\s*:/i,
   /human\s*:/i,
+  /user\s*:/i,
+  /<\s*system\s*>/i,
+  /<\s*\/?\s*instructions?\s*>/i,
+
+  // Emphasis markers often used in injection
   /\bIMPORTANT\s*:/i,
   /\bNOTE\s*:/i,
+  /\bWARNING\s*:/i,
+  /\bCRITICAL\s*:/i,
+  /\bURGENT\s*:/i,
+
+  // Output manipulation
   /respond\s+with\s+(this\s+)?(exact\s+)?json/i,
+  /return\s+(only\s+)?["']?ALLOW["']?/i,
+  /output\s+(only\s+)?["']?ALLOW["']?/i,
+  /always\s+(return|respond|output)\s+/i,
+  /must\s+(return|respond|output)\s+/i,
+
+  // Context escape attempts
   /for\s+testing\s+purposes/i,
   /end\s+of\s+(test\s+)?instructions/i,
+  /this\s+is\s+(a\s+)?(safe|secure|authorized|approved)/i,
+  /pre-?approved/i,
+  /already\s+(been\s+)?(verified|approved|checked)/i,
+
+  // Direct verdict manipulation
+  /classification\s*[=:]\s*["']?(SELF_HANDLE|ALLOW)["']?/i,
+  /verdict\s*[=:]\s*["']?ALLOW["']?/i,
+  /\{"?\s*verdict\s*"?\s*:\s*"?ALLOW/i,
 ];
 
 /**
@@ -81,7 +122,8 @@ const FORCE_ESCALATE_PATTERNS = [
   /eval\s*\(/i,                       // eval() calls
   /\$\([^)]+\)/,                      // Command substitution
   /`[^`]+`/,                          // Backtick command substitution
-  />\s*\/dev\/tcp/i,                  // /dev/tcp redirection
+  /[<>]\s*\/dev\/tcp/i,               // /dev/tcp redirection (both < and >)
+  /\/dev\/tcp\//i,                    // /dev/tcp path anywhere
   /nc\s+.*-[elp]/i,                   // netcat with execution/listen flags
   /\bsudo\b/i,                        // sudo commands
   /\bsu\b\s+-/i,                      // su commands
