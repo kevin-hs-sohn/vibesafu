@@ -54,7 +54,7 @@ describe('Hook Handler', () => {
   // Safe Commands - Allow via instant-allow or no-checkpoint
   // ==========================================================================
   describe('Safe Commands', () => {
-    it('should allow git status via instant-allow', async () => {
+    it('should allow git status via instant-allow (read-only)', async () => {
       const input = createTestInput('git status');
       const result = await processPermissionRequest(input);
 
@@ -62,8 +62,8 @@ describe('Hook Handler', () => {
       expect(result.source).toBe('instant-allow');
     });
 
-    it('should allow git commit via instant-allow', async () => {
-      const input = createTestInput('git commit -m "feat: add feature"');
+    it('should allow git log via instant-allow (read-only)', async () => {
+      const input = createTestInput('git log --oneline');
       const result = await processPermissionRequest(input);
 
       expect(result.decision).toBe('allow');
@@ -84,6 +84,35 @@ describe('Hook Handler', () => {
 
       expect(result.decision).toBe('allow');
       expect(result.source).toBe('no-checkpoint');
+    });
+  });
+
+  // ==========================================================================
+  // Git Commands That Trigger Hooks - Need checkpoint review
+  // ==========================================================================
+  describe('Git Commands With Hooks (need review)', () => {
+    it('should require review for git commit (triggers hooks)', async () => {
+      const input = createTestInput('git commit -m "feat: add feature"');
+      const result = await processPermissionRequest(input);
+
+      // git commit can trigger pre-commit, commit-msg hooks
+      expect(result.decision).toBe('needs-review');
+    });
+
+    it('should require review for git checkout (triggers hooks)', async () => {
+      const input = createTestInput('git checkout main');
+      const result = await processPermissionRequest(input);
+
+      // git checkout can trigger post-checkout hook
+      expect(result.decision).toBe('needs-review');
+    });
+
+    it('should require review for git merge (triggers hooks)', async () => {
+      const input = createTestInput('git merge feature-branch');
+      const result = await processPermissionRequest(input);
+
+      // git merge can trigger pre-merge-commit, post-merge hooks
+      expect(result.decision).toBe('needs-review');
     });
   });
 
