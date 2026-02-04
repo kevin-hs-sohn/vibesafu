@@ -149,6 +149,9 @@ export async function processPermissionRequest(
     };
   }
 
+  // Progress indicator to stderr (doesn't interfere with JSON output on stdout)
+  process.stderr.write('\x1b[90m[VibeSafu] Assessing security risks...\x1b[0m\n');
+
   // Step 5a: Haiku triage
   const triage = await triageWithHaiku(anthropicClient, checkpoint);
 
@@ -169,6 +172,7 @@ export async function processPermissionRequest(
   }
 
   // Step 5b: Escalate to Sonnet for deeper review
+  process.stderr.write('\x1b[90m[VibeSafu] Escalating to deep analysis...\x1b[0m\n');
   const review = await reviewWithSonnet(anthropicClient, checkpoint, triage);
 
   if (review.verdict === 'BLOCK') {
