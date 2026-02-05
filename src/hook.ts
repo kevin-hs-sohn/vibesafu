@@ -16,10 +16,16 @@ import { checkTrustedDomains } from './guard/trusted-domain.js';
 import { checkFileTool } from './guard/file-tools.js';
 import { triageWithHaiku } from './guard/haiku-triage.js';
 import { reviewWithSonnet } from './guard/sonnet-review.js';
-import { getApiKey } from './cli/config.js';
+import { getApiKey, readConfig } from './cli/config.js';
 
 /** Timeout in seconds before auto-denying risky commands */
 const TIMEOUT_SECONDS = 3;
+
+/** Timeout for plan mode approval (72 hours - user may be away) */
+const PLAN_MODE_TIMEOUT_SECONDS = 72 * 60 * 60;
+
+/** Known safe non-Bash tools that can be auto-approved */
+const SAFE_NON_BASH_TOOLS = ['WebFetch', 'WebSearch', 'Task', 'Glob', 'Grep', 'LS', 'TodoRead', 'TodoWrite', 'NotebookRead'];
 
 export type HookDecision = 'allow' | 'deny' | 'needs-review';
 export type DecisionSource =
@@ -39,6 +45,8 @@ export interface ProcessResult {
   source: DecisionSource;
   checkpoint?: SecurityCheckpoint;
   userMessage?: string;
+  /** Custom timeout in seconds (defaults to TIMEOUT_SECONDS if not specified) */
+  timeoutSeconds?: number;
 }
 
 /**
@@ -81,18 +89,125 @@ export async function processPermissionRequest(
     };
   }
 
-  // Step 2: Other non-Bash tools → Allow
+  // Step 2: Handle non-Bash tools
   if (input.tool_name !== 'Bash') {
+    // 2a: NotebookEdit - treat like Write/Edit (check sensitive paths)
+    if (input.tool_name === 'NotebookEdit') {
+      const notebookPath = input.tool_input.notebook_path as string | undefined;
+      if (notebookPath) {
+        const fileCheck = checkFileTool('Edit', { file_path: notebookPath });
+        if (fileCheck.blocked) {
+          const severityLabel = fileCheck.severity === 'critical' ? 'SENSITIVE FILE' : 'CAUTION';
+          return {
+            decision: 'needs-review',
+            reason: `[${severityLabel}] ${fileCheck.reason}`,
+            source: 'high-risk',
+            userMessage: `[${severityLabel}] ${fileCheck.reason} (Auto-reject in ${TIMEOUT_SECONDS}s)\n\nPotential risk: ${fileCheck.risk}\n\nOnly proceed if you know what you're doing.`,
+          };
+        }
+      }
+      return {
+        decision: 'allow',
+        reason: 'NotebookEdit with safe path',
+        source: 'non-bash-tool',
+      };
+    }
+
+    // 2b: exit_plan_mode - requires user approval (72 hour timeout)
+    if (input.tool_name === 'exit_plan_mode') {
+      return {
+        decision: 'needs-review',
+        reason: 'Plan mode exit requires user approval',
+        source: 'non-bash-tool',
+        userMessage: `[PLAN APPROVAL REQUIRED] Claude wants to exit plan mode and execute.\n\nPlease review the plan and click "Allow" to proceed.\n\nThis will auto-reject if not approved.`,
+        timeoutSeconds: PLAN_MODE_TIMEOUT_SECONDS,
+      };
+    }
+
+    // 2c: MCP tools - require approval (user may not have installed them)
+    if (input.tool_name.startsWith('mcp__')) {
+      // Check config.allowedMCPTools for pre-approved MCP tools
+      const config = await readConfig();
+      const isAllowed = config.allowedMCPTools.some((pattern) => {
+        if (pattern.endsWith('*')) {
+          // Wildcard match: "mcp__memory__*" matches "mcp__memory__create_entities"
+          const prefix = pattern.slice(0, -1);
+          return input.tool_name.startsWith(prefix);
+        }
+        return input.tool_name === pattern;
+      });
+
+      if (isAllowed) {
+        return {
+          decision: 'allow',
+          reason: `MCP tool ${input.tool_name} is pre-approved in config`,
+          source: 'non-bash-tool',
+        };
+      }
+
+      return {
+        decision: 'needs-review',
+        reason: `MCP tool ${input.tool_name} requires approval`,
+        source: 'non-bash-tool',
+        userMessage: `[MCP TOOL] ${input.tool_name}\n\nMCP tools require explicit approval. Click "Allow" to proceed.\n\nAuto-reject in ${TIMEOUT_SECONDS}s.`,
+      };
+    }
+
+    // 2d: Known safe tools - auto-approve
+    if (SAFE_NON_BASH_TOOLS.includes(input.tool_name)) {
+      return {
+        decision: 'allow',
+        reason: `Safe tool: ${input.tool_name}`,
+        source: 'non-bash-tool',
+      };
+    }
+
+    // 2e: Unknown tools - require approval for safety
     return {
-      decision: 'allow',
-      reason: `Tool ${input.tool_name} is not Bash, allowing`,
+      decision: 'needs-review',
+      reason: `Unknown tool ${input.tool_name} requires approval`,
       source: 'non-bash-tool',
+      userMessage: `[UNKNOWN TOOL] ${input.tool_name}\n\nThis tool is not recognized. Click "Allow" to proceed.\n\nAuto-reject in ${TIMEOUT_SECONDS}s.`,
     };
   }
 
   const command = input.tool_input.command as string;
 
-  // Step 3: Check for instant allow patterns (safe commands that skip LLM)
+  // Step 3: Check custom patterns from user config
+  const config = await readConfig();
+
+  // 3a: Custom allow patterns (user-defined safe commands)
+  for (const pattern of config.customPatterns.allow) {
+    try {
+      if (new RegExp(pattern, 'i').test(command)) {
+        return {
+          decision: 'allow',
+          reason: `Custom allow pattern: ${pattern}`,
+          source: 'instant-allow',
+        };
+      }
+    } catch {
+      // Invalid regex, skip
+    }
+  }
+
+  // 3b: Custom block patterns (user-defined dangerous commands)
+  for (const pattern of config.customPatterns.block) {
+    try {
+      if (new RegExp(pattern, 'i').test(command)) {
+        return {
+          decision: 'needs-review',
+          reason: `Custom block pattern: ${pattern}`,
+          source: 'high-risk',
+          userMessage: `[CUSTOM BLOCK] Matched pattern: ${pattern}\n\nThis command was blocked by your custom config.\n\nAuto-reject in ${TIMEOUT_SECONDS}s.`,
+        };
+      }
+    } catch {
+      // Invalid regex, skip
+    }
+  }
+
+  // Step 4: Check for instant allow patterns (safe commands that skip LLM)
   const allowResult = checkInstantAllow(command);
   if (allowResult.allowed) {
     return {
@@ -275,15 +390,21 @@ export async function runHook(): Promise<void> {
   }
 
   const warningMessage = result.userMessage ?? result.reason;
+  const timeout = result.timeoutSeconds ?? TIMEOUT_SECONDS;
 
   // Both 'deny' and 'needs-review': wait for timeout, then deny
   // During this time, user can click "Allow" in Claude Code's override dialog
-  await new Promise((resolve) => setTimeout(resolve, TIMEOUT_SECONDS * 1000));
+  await new Promise((resolve) => setTimeout(resolve, timeout * 1000));
+
+  // Format timeout for display
+  const timeoutDisplay = timeout >= 3600
+    ? `${Math.round(timeout / 3600)}h`
+    : `${timeout}s`;
 
   // Still here after timeout = user didn't allow, auto-deny
-  const denyMessage = `🛡️ [VibeSafu] Auto-denied (no response in ${TIMEOUT_SECONDS}s)\n\n` +
+  const denyMessage = `🛡️ [VibeSafu] Auto-denied (no response in ${timeoutDisplay})\n\n` +
     `Reason: ${warningMessage}\n\n` +
-    `If this was intentional, re-run the command and click "Allow" within ${TIMEOUT_SECONDS} seconds.`;
+    `If this was intentional, re-run the command and click "Allow".`;
 
   output = createHookOutput('deny', denyMessage);
   console.log(JSON.stringify(output));

@@ -25,6 +25,7 @@ const DEFAULT_CONFIG: VibeSafuConfig = {
     block: [],
     allow: [],
   },
+  allowedMCPTools: [],
   logging: {
     enabled: true,
     path: join(CONFIG_DIR, 'logs'),
