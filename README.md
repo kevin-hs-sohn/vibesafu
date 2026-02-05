@@ -285,6 +285,43 @@ Sandboxes solve containment, not permission fatigue. But they also have real lim
 
 **VibeSafu + sandbox = best of both worlds.** Use VibeSafu to filter permissions intelligently, and a sandbox for containment when you need it.
 
+### Why not just use Claude Code's built-in permission settings?
+
+Claude Code has [built-in permission settings](https://docs.anthropic.com/en/docs/claude-code/settings#permission-settings) that let you allowlist/denylist commands via JSON configuration. It's a great feature!
+
+**The key difference is who needs to audit what:**
+
+Built-in settings require **you** to decide what's safe to auto-approve:
+- Is `npm install` always safe? (what about malicious postinstall scripts?)
+- Is `git clone *` safe? (what about cloning a repo with malicious hooks?)
+- If you auto-approve too broadly, you get **false negatives** (dangerous commands slip through)
+
+VibeSafu reviews **each command in context**:
+```json
+// Built-in: You decide what patterns are safe
+{"allow": ["Bash(npm install *)", "Bash(git *)"]}
+// But "npm install malicious-package" also passes through
+
+// VibeSafu: Reviews the actual command
+// "npm install lodash" → allowed (known safe package)
+// "npm install malicious-package" → flagged for review
+```
+
+| Aspect | Built-in Settings | VibeSafu |
+|--------|-------------------|----------|
+| Approach | You audit & allowlist patterns | LLM audits each command |
+| Setup | JSON configuration | Zero config |
+| Knowledge needed | What's safe to auto-approve | None |
+| Speed | Instant | +100-500ms (LLM call) |
+| Cost | Free | Haiku API costs |
+| Risk | False negatives if too broad | False positives (LLM misjudgment) |
+
+**When to use what:**
+- **Built-in**: Commands you're 100% confident are always safe in any context
+- **VibeSafu**: Context-aware review for everything else
+
+**They're complementary!** Defense in depth.
+
 ### Can I use this with VS Code?
 
 Yes! VibeSafu works with both CLI (`claude`) and VS Code extension.
