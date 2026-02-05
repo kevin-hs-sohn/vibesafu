@@ -361,4 +361,129 @@ describe('Hook Handler', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // Non-Bash Tool Handling (NEW)
+  // ==========================================================================
+  describe('Non-Bash Tool Handling', () => {
+    describe('exit_plan_mode', () => {
+      it('should require user approval with long timeout', async () => {
+        const input: PermissionRequestInput = {
+          session_id: 'test-session',
+          transcript_path: '/tmp/transcript',
+          cwd: '/tmp/project',
+          permission_mode: 'plan',
+          hook_event_name: 'PermissionRequest',
+          tool_name: 'exit_plan_mode',
+          tool_input: {},
+        };
+        const result = await processPermissionRequest(input);
+
+        expect(result.decision).toBe('needs-review');
+        expect(result.userMessage).toContain('PLAN APPROVAL');
+        expect(result.timeoutSeconds).toBe(72 * 60 * 60); // 72 hours
+      });
+    });
+
+    describe('MCP tools', () => {
+      it('should require approval for MCP tools by default', async () => {
+        const input: PermissionRequestInput = {
+          session_id: 'test-session',
+          transcript_path: '/tmp/transcript',
+          cwd: '/tmp/project',
+          permission_mode: 'default',
+          hook_event_name: 'PermissionRequest',
+          tool_name: 'mcp__memory__create_entities',
+          tool_input: {},
+        };
+        const result = await processPermissionRequest(input);
+
+        expect(result.decision).toBe('needs-review');
+        expect(result.userMessage).toContain('MCP TOOL');
+      });
+    });
+
+    describe('NotebookEdit', () => {
+      it('should allow NotebookEdit with safe path', async () => {
+        const input: PermissionRequestInput = {
+          session_id: 'test-session',
+          transcript_path: '/tmp/transcript',
+          cwd: '/tmp/project',
+          permission_mode: 'default',
+          hook_event_name: 'PermissionRequest',
+          tool_name: 'NotebookEdit',
+          tool_input: { notebook_path: '/tmp/project/analysis.ipynb' },
+        };
+        const result = await processPermissionRequest(input);
+
+        expect(result.decision).toBe('allow');
+      });
+
+      it('should warn NotebookEdit with sensitive path', async () => {
+        const input: PermissionRequestInput = {
+          session_id: 'test-session',
+          transcript_path: '/tmp/transcript',
+          cwd: '/tmp/project',
+          permission_mode: 'default',
+          hook_event_name: 'PermissionRequest',
+          tool_name: 'NotebookEdit',
+          tool_input: { notebook_path: '~/.ssh/config.ipynb' },
+        };
+        const result = await processPermissionRequest(input);
+
+        expect(result.decision).toBe('needs-review');
+      });
+    });
+
+    describe('Safe non-Bash tools', () => {
+      it('should allow WebFetch', async () => {
+        const input: PermissionRequestInput = {
+          session_id: 'test-session',
+          transcript_path: '/tmp/transcript',
+          cwd: '/tmp/project',
+          permission_mode: 'default',
+          hook_event_name: 'PermissionRequest',
+          tool_name: 'WebFetch',
+          tool_input: { url: 'https://example.com' },
+        };
+        const result = await processPermissionRequest(input);
+
+        expect(result.decision).toBe('allow');
+        expect(result.source).toBe('non-bash-tool');
+      });
+
+      it('should allow Task', async () => {
+        const input: PermissionRequestInput = {
+          session_id: 'test-session',
+          transcript_path: '/tmp/transcript',
+          cwd: '/tmp/project',
+          permission_mode: 'default',
+          hook_event_name: 'PermissionRequest',
+          tool_name: 'Task',
+          tool_input: { prompt: 'Find files' },
+        };
+        const result = await processPermissionRequest(input);
+
+        expect(result.decision).toBe('allow');
+      });
+    });
+
+    describe('Unknown tools', () => {
+      it('should require approval for unknown tools', async () => {
+        const input: PermissionRequestInput = {
+          session_id: 'test-session',
+          transcript_path: '/tmp/transcript',
+          cwd: '/tmp/project',
+          permission_mode: 'default',
+          hook_event_name: 'PermissionRequest',
+          tool_name: 'SomeNewTool',
+          tool_input: {},
+        };
+        const result = await processPermissionRequest(input);
+
+        expect(result.decision).toBe('needs-review');
+        expect(result.userMessage).toContain('UNKNOWN TOOL');
+      });
+    });
+  });
 });

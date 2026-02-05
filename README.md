@@ -233,6 +233,83 @@ Default trusted domains for data fetches (NOT script execution):
 - brew.sh, get.docker.com
 - rustup.rs, vercel.com, netlify.com
 
+### Custom Patterns
+
+Add your own allow/block patterns via regex:
+
+```json
+{
+  "customPatterns": {
+    "allow": [
+      "^make\\s*(clean|build|test)?$",
+      "^cargo\\s+build"
+    ],
+    "block": [
+      "DELETE FROM users",
+      "DROP TABLE"
+    ]
+  }
+}
+```
+
+- **allow**: Commands matching these patterns skip LLM review
+- **block**: Commands matching these patterns require manual approval (3s auto-deny)
+- Patterns are evaluated in order: custom allow → custom block → built-in rules
+
+### MCP Tool Allowlist
+
+MCP tools require explicit approval by default. Pre-approve specific tools:
+
+```json
+{
+  "allowedMCPTools": [
+    "mcp__memory__*",
+    "mcp__filesystem__read_file"
+  ]
+}
+```
+
+- Supports wildcards: `mcp__memory__*` matches all memory server tools
+- Exact matches: `mcp__filesystem__read_file` matches only that tool
+- Unlisted MCP tools trigger a 3-second approval window
+
+## How Tools Are Handled
+
+VibeSafu handles different Claude Code tools differently:
+
+| Tool | Handling |
+|------|----------|
+| **Bash** | Full security analysis (patterns + LLM) |
+| **Write, Edit** | Sensitive path check only |
+| **Read** | Sensitive path check only |
+| **NotebookEdit** | Sensitive path check only |
+| **exit_plan_mode** | Requires approval (72h timeout) |
+| **mcp__\*** | Config allowlist or approval (3s timeout) |
+| **WebFetch, WebSearch, Task** | Auto-allowed |
+| **Glob, Grep, LS** | Auto-allowed |
+| **TodoRead, TodoWrite** | Auto-allowed |
+| **Unknown tools** | Requires approval (3s timeout) |
+
+### Why Different Timeouts?
+
+- **3 seconds** (default): Enough time to click "Allow" if you're watching
+- **72 hours** (plan mode): You might be AFK when Claude finishes planning
+
+### Sensitive Paths
+
+File tools (Write, Edit, Read, NotebookEdit) check for sensitive paths:
+
+**Critical (always flagged):**
+- SSH keys: `~/.ssh/*`
+- AWS credentials: `~/.aws/credentials`
+- Git credentials: `~/.git-credentials`
+- Shell configs: `~/.bashrc`, `~/.zshrc`, `~/.profile`
+
+**High risk (flagged):**
+- Environment files: `.env`, `.env.*`
+- Claude configs: `CLAUDE.md`, `.claude/*`
+- Build configs: `package.json`, `Makefile`, `Dockerfile`
+
 ## Commands
 
 ```bash
