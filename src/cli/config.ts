@@ -3,7 +3,7 @@
  * Configure vibesafu settings (API key, etc.)
  */
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, chmod } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -64,6 +64,8 @@ export async function readConfig(): Promise<vibesafuConfig> {
 export async function writeConfig(config: vibesafuConfig): Promise<void> {
   await mkdir(CONFIG_DIR, { recursive: true });
   await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2));
+  // Restrict file permissions since config may contain API keys
+  await chmod(CONFIG_PATH, 0o600);
 }
 
 /**
