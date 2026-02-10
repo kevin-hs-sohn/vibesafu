@@ -39,8 +39,12 @@ async function readClaudeSettings(): Promise<ClaudeSettings> {
   try {
     const content = await readFile(CLAUDE_SETTINGS_PATH, 'utf-8');
     return JSON.parse(content) as ClaudeSettings;
-  } catch {
-    // File doesn't exist or is invalid, return empty settings
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return {};
+    }
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Warning: Failed to read Claude settings (${CLAUDE_SETTINGS_PATH}): ${msg}. Starting fresh.`);
     return {};
   }
 }

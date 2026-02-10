@@ -53,7 +53,14 @@ export async function readConfig(): Promise<vibesafuConfig> {
   try {
     const content = await readFile(CONFIG_PATH, 'utf-8');
     return mergeConfig(DEFAULT_CONFIG, JSON.parse(content));
-  } catch {
+  } catch (error) {
+    // File not found is expected on first run - no warning needed
+    if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return DEFAULT_CONFIG;
+    }
+    // Other errors (permission denied, invalid JSON) should be surfaced
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    process.stderr.write(`[vibesafu] Warning: Failed to read config (${CONFIG_PATH}): ${msg}. Using defaults.\n`);
     return DEFAULT_CONFIG;
   }
 }
