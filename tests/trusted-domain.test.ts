@@ -205,6 +205,32 @@ describe('Trusted Domain', () => {
       const urls = extractUrls('curl "https://example.com/file"');
       expect(urls).toContain('https://example.com/file');
     });
+
+    it('should strip trailing parenthesis from URLs', () => {
+      const urls = extractUrls('Visit (https://example.com/page)');
+      expect(urls).toContain('https://example.com/page');
+      expect(urls).not.toContain('https://example.com/page)');
+    });
+
+    it('should strip trailing comma from URLs', () => {
+      const urls = extractUrls('Download https://example.com/file, then run');
+      expect(urls).toContain('https://example.com/file');
+    });
+
+    it('should strip trailing semicolon from URLs', () => {
+      const urls = extractUrls('curl https://example.com/api; echo done');
+      expect(urls).toContain('https://example.com/api');
+    });
+
+    it('should strip trailing period from URLs', () => {
+      const urls = extractUrls('Check https://example.com/docs.');
+      expect(urls).toContain('https://example.com/docs');
+    });
+
+    it('should preserve URLs with valid trailing path chars', () => {
+      const urls = extractUrls('curl https://example.com/path/to/file.tar.gz');
+      expect(urls).toContain('https://example.com/path/to/file.tar.gz');
+    });
   });
 
   // ==========================================================================

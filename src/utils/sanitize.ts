@@ -143,3 +143,86 @@ export function shouldForceEscalate(command: string): boolean {
   // Check for risky patterns that shouldn't be auto-approved
   return FORCE_ESCALATE_PATTERNS.some((pattern) => pattern.test(command));
 }
+
+/**
+ * Extract a JSON object from LLM response text.
+ *
+ * Strategy (in order):
+ * 1. Try parsing the entire text as JSON (LLM often returns pure JSON)
+ * 2. Try extracting JSON from a ```json code block
+ * 3. Find the first balanced { ... } block using brace-depth counting
+ *
+ * Returns null if no valid JSON object can be extracted.
+ */
+export function extractJsonFromText(text: string): Record<string, unknown> | null {
+  // Strategy 1: Direct parse (most common case - LLM returns pure JSON)
+  try {
+    const parsed = JSON.parse(text.trim());
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Not pure JSON, try extraction strategies
+  }
+
+  // Strategy 2: Extract from ```json code block
+  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (codeBlockMatch) {
+    try {
+      const parsed = JSON.parse(codeBlockMatch[1].trim());
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Code block content isn't valid JSON, continue
+    }
+  }
+
+  // Strategy 3: Find first balanced { ... } block via brace counting
+  const startIdx = text.indexOf('{');
+  if (startIdx === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = startIdx; i < text.length; i++) {
+    const ch = text[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (ch === '\\' && inString) {
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        const candidate = text.slice(startIdx, i + 1);
+        try {
+          const parsed = JSON.parse(candidate);
+          if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+            return parsed as Record<string, unknown>;
+          }
+        } catch {
+          // This balanced block isn't valid JSON, look for next one
+          return null;
+        }
+      }
+    }
+  }
+
+  return null;
+}

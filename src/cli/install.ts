@@ -3,7 +3,7 @@
  * Installs vibesafu hook to Claude Code settings
  */
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, chmod } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -56,6 +56,8 @@ async function writeClaudeSettings(settings: ClaudeSettings): Promise<void> {
   const dir = join(homedir(), '.claude');
   await mkdir(dir, { recursive: true });
   await writeFile(CLAUDE_SETTINGS_PATH, JSON.stringify(settings, null, 2));
+  // Restrict permissions - settings may reference security-sensitive hooks
+  await chmod(CLAUDE_SETTINGS_PATH, 0o600);
 }
 
 /**

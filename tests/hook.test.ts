@@ -163,6 +163,21 @@ describe('Hook Handler', () => {
       expect(result.decision).toBe('allow');
       expect(result.source).toBe('trusted-domain');
     });
+
+    // Risky URL patterns should NOT be auto-approved even from trusted domains
+    it('should NOT auto-approve raw.githubusercontent.com (user-controlled content)', async () => {
+      const input = createTestInput('curl -o file.txt https://raw.githubusercontent.com/user/repo/main/script.sh');
+      const result = await processPermissionRequest(input);
+
+      expect(result.decision).toBe('needs-review');
+    });
+
+    it('should NOT auto-approve GitHub release downloads', async () => {
+      const input = createTestInput('curl -L -o binary https://github.com/user/repo/releases/download/v1.0/binary');
+      const result = await processPermissionRequest(input);
+
+      expect(result.decision).toBe('needs-review');
+    });
   });
 
   // ==========================================================================

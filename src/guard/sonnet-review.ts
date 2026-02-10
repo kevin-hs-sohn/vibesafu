@@ -13,6 +13,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { SecurityCheckpoint } from '../types.js';
 import type { TriageResult } from './haiku-triage.js';
+import { extractJsonFromText } from '../utils/sanitize.js';
 import { sanitizeForPrompt, escapeXml } from '../utils/sanitize.js';
 
 export type ReviewVerdict = 'ALLOW' | 'ASK_USER' | 'BLOCK';
@@ -153,9 +154,9 @@ export async function reviewWithSonnet(
       };
     }
 
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Extract JSON from response using robust parser
+    const extracted = extractJsonFromText(text);
+    if (!extracted) {
       return {
         verdict: 'ASK_USER',
         riskLevel: 'medium',
@@ -164,7 +165,7 @@ export async function reviewWithSonnet(
       };
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as {
+    const parsed = extracted as {
       verdict?: ReviewVerdict;
       risk_level?: RiskLevel;
       analysis?: {

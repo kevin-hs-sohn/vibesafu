@@ -175,11 +175,18 @@ export function isTrustedUrl(url: string): boolean {
 
 /**
  * Extract all URLs from a command string
+ * Strips trailing punctuation that is likely part of surrounding text, not the URL
  */
 export function extractUrls(command: string): string[] {
   const urlPattern = /https?:\/\/[^\s"'<>]+/gi;
   const matches = command.match(urlPattern);
-  return matches ?? [];
+  if (!matches) return [];
+
+  return matches.map((url) => {
+    // Strip trailing punctuation that is unlikely to be part of a URL
+    // Preserves . in filenames (e.g., file.tar.gz) by only stripping trailing single chars
+    return url.replace(/[),;.]+$/, '');
+  });
 }
 
 /**

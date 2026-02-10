@@ -13,6 +13,7 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import type { SecurityCheckpoint } from '../types.js';
+import { extractJsonFromText } from '../utils/sanitize.js';
 import {
   sanitizeForPrompt,
   shouldForceEscalate,
@@ -137,9 +138,9 @@ export async function triageWithHaiku(
       };
     }
 
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Extract JSON from response using robust parser
+    const extracted = extractJsonFromText(text);
+    if (!extracted) {
       return {
         classification: 'ESCALATE',
         reason: 'Triage failed: Could not parse JSON response',
@@ -147,7 +148,7 @@ export async function triageWithHaiku(
       };
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as {
+    const parsed = extracted as {
       classification?: TriageClassification;
       reason?: string;
       risk_indicators?: string[];

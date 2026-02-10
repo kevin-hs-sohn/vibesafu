@@ -264,6 +264,41 @@ describe('Haiku Triage', () => {
   });
 
   // ==========================================================================
+  // Robust JSON Extraction
+  // ==========================================================================
+  describe('Robust JSON Extraction', () => {
+    it('should parse JSON embedded in explanatory text', async () => {
+      mockAnthropicClient.messages.create.mockResolvedValueOnce({
+        content: [{
+          type: 'text',
+          text: 'Here is my analysis:\n\n```json\n{"classification": "SELF_HANDLE", "reason": "Safe git operation", "risk_indicators": []}\n```\n\nThis is safe.',
+        }],
+      });
+
+      const checkpoint = createCheckpoint('git_operation', 'git add .');
+      const result = await triageWithHaiku(mockAnthropicClient as any, checkpoint);
+
+      expect(result.classification).toBe('SELF_HANDLE');
+    });
+
+    it('should handle JSON followed by closing brace in explanation', async () => {
+      // Greedy regex /\{[\s\S]*\}/ would match from first { to the LAST },
+      // grabbing invalid content. The parser should still extract valid JSON.
+      mockAnthropicClient.messages.create.mockResolvedValueOnce({
+        content: [{
+          type: 'text',
+          text: '{"classification": "ESCALATE", "reason": "Needs review", "risk_indicators": ["complex"]} Note: commands using syntax like ${VAR} need caution}',
+        }],
+      });
+
+      const checkpoint = createCheckpoint('script_execution', 'echo ${VAR}');
+      const result = await triageWithHaiku(mockAnthropicClient as any, checkpoint);
+
+      expect(result.classification).toBe('ESCALATE');
+    });
+  });
+
+  // ==========================================================================
   // Prompt Injection Defense
   // ==========================================================================
   describe('Prompt Injection Defense', () => {
