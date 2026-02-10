@@ -202,17 +202,39 @@ const READ_SENSITIVE_PATHS: SensitivePath[] = [
     legitimateUses: ['Key backup', 'Key migration'] },
 ];
 
+import { resolve } from 'node:path';
+import { homedir } from 'node:os';
+
 /**
  * Normalize file path for consistent matching
+ * - Resolves .. traversal
+ * - Maps absolute home directory paths to ~/... form
+ * - Handles $HOME and ${HOME}
+ * - Normalizes multiple slashes
  */
 function normalizePath(filePath: string): string {
-  // Expand environment variables
-  let normalized = filePath
+  let normalized = filePath;
+
+  // Expand environment variables to ~
+  normalized = normalized
     .replace(/\$HOME/g, '~')
     .replace(/\$\{HOME\}/g, '~');
 
   // Normalize multiple slashes
   normalized = normalized.replace(/\/+/g, '/');
+
+  // Resolve .. traversal for absolute paths (not ~-prefixed)
+  if (normalized.startsWith('/')) {
+    normalized = resolve(normalized);
+  }
+
+  // Map absolute home directory path to ~/... form for pattern matching
+  const home = homedir();
+  if (normalized.startsWith(home + '/')) {
+    normalized = '~' + normalized.slice(home.length);
+  } else if (normalized === home) {
+    normalized = '~';
+  }
 
   return normalized;
 }

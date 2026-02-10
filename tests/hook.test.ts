@@ -486,4 +486,40 @@ describe('Hook Handler', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // ReDoS Protection for Custom Patterns
+  // ==========================================================================
+  describe('Custom Pattern ReDoS Protection', () => {
+    it('should not hang on catastrophic backtracking regex in custom allow patterns', async () => {
+      // This test verifies that a ReDoS pattern doesn't freeze the process
+      // The function should complete within a reasonable time even with evil regex
+      const { safeRegexTest } = await import('../src/hook.js');
+
+      const start = Date.now();
+      // (a+)+b is a classic ReDoS pattern - exponential backtracking on 'aaa...b'
+      const result = safeRegexTest('(a+)+$', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaab');
+      const elapsed = Date.now() - start;
+
+      // Should complete quickly (< 100ms) rather than hanging for seconds/minutes
+      expect(elapsed).toBeLessThan(100);
+      // Should return false (treated as no-match on timeout/error)
+      expect(result).toBe(false);
+    });
+
+    it('should correctly match valid custom patterns', async () => {
+      const { safeRegexTest } = await import('../src/hook.js');
+
+      expect(safeRegexTest('^make\\b', 'make build')).toBe(true);
+      expect(safeRegexTest('^npm run', 'npm run test')).toBe(true);
+      expect(safeRegexTest('^make\\b', 'mkdir foo')).toBe(false);
+    });
+
+    it('should return false for invalid regex syntax', async () => {
+      const { safeRegexTest } = await import('../src/hook.js');
+
+      // Invalid regex should return false, not throw
+      expect(safeRegexTest('[invalid', 'test')).toBe(false);
+    });
+  });
 });
