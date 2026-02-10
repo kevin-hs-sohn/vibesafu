@@ -195,6 +195,51 @@ describe('File Tools Security', () => {
   });
 
   // ==========================================================================
+  // Path Normalization Bypass Prevention
+  // ==========================================================================
+  describe('Path Normalization Bypass Prevention', () => {
+    it('should block .. traversal to reach .ssh directory', () => {
+      const result = checkFilePath('/tmp/../root/.ssh/id_rsa', 'read');
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block .. traversal to reach .env', () => {
+      const result = checkFilePath('/project/src/../../.env', 'read');
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block absolute home path to .ssh (macOS)', () => {
+      const result = checkFilePath(`${process.env.HOME}/.ssh/id_rsa`, 'read');
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block absolute home path to .aws/credentials', () => {
+      const result = checkFilePath(`${process.env.HOME}/.aws/credentials`, 'read');
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block absolute home path to .bashrc (write)', () => {
+      const result = checkFilePath(`${process.env.HOME}/.bashrc`, 'write');
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block absolute home path to .claude/settings.json (write)', () => {
+      const result = checkFilePath(`${process.env.HOME}/.claude/settings.json`, 'write');
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block /home/user/.ssh/id_rsa with explicit home path', () => {
+      const result = checkFilePath('/home/user/.ssh/id_rsa', 'read');
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block double slash normalization', () => {
+      const result = checkFilePath('~///.ssh///id_rsa', 'read');
+      expect(result.blocked).toBe(true);
+    });
+  });
+
+  // ==========================================================================
   // checkFileTool Integration
   // ==========================================================================
   describe('checkFileTool', () => {
