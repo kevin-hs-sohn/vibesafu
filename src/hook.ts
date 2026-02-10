@@ -279,6 +279,16 @@ export async function processPermissionRequest(
   if (checkpoint.type === 'network') {
     const domainResult = checkTrustedDomains(command);
     if (domainResult.allTrusted && domainResult.urls.length > 0) {
+      // SECURITY: Even from trusted domains, risky URL patterns (raw.githubusercontent.com,
+      // releases/download, etc.) serve user-controlled content and need deeper review
+      if (domainResult.hasRiskyUrls) {
+        return {
+          decision: 'needs-review',
+          reason: `Risky URL pattern from trusted domain: ${domainResult.riskyUrls.join(', ')}`,
+          source: 'checkpoint',
+          checkpoint,
+        };
+      }
       return {
         decision: 'allow',
         reason: `All URLs from trusted domains: ${domainResult.trustedUrls.join(', ')}`,
