@@ -119,20 +119,3 @@ export async function config(): Promise<void> {
   console.log(`Config file: ${CONFIG_PATH}`);
 }
 
-/**
- * Get API key from config or environment
- */
-export async function getApiKey(): Promise<string | undefined> {
-  // Check environment variable first
-  if (process.env.ANTHROPIC_API_KEY) {
-    return process.env.ANTHROPIC_API_KEY;
-  }
-
-  // Check config file
-  const cfg = await readConfig();
-  if (cfg.anthropic.apiKey) {
-    return cfg.anthropic.apiKey;
-  }
-
-  return undefined;
-}

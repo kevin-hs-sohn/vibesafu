@@ -29,32 +29,6 @@ export interface PermissionRequestOutput {
   };
 }
 
-// Security Decision
-export type SecurityVerdict = 'ALLOW' | 'DENY' | 'ASK_USER';
-
-export interface SecurityDecision {
-  verdict: SecurityVerdict;
-  reason: string;
-  source: 'instant-block' | 'trusted-domain' | 'haiku' | 'sonnet';
-}
-
-// Haiku Triage Response
-export type HaikuDecision = 'SELF_HANDLE' | 'ESCALATE' | 'BLOCK';
-
-export interface HaikuTriageResult {
-  decision: HaikuDecision;
-  reasoning: string;
-  verdict?: SecurityVerdict; // for SELF_HANDLE
-  reason?: string; // for SELF_HANDLE or BLOCK
-}
-
-// Sonnet Review Response
-export interface SonnetReviewResult {
-  verdict: SecurityVerdict;
-  analysis: string;
-  recommendations?: string[];
-}
-
 // Config
 export interface vibesafuConfig {
   anthropic: {
