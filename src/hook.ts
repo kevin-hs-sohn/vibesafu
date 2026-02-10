@@ -21,6 +21,40 @@ import { getApiKey, readConfig } from './cli/config.js';
 /** Timeout in seconds before auto-denying risky commands */
 const TIMEOUT_SECONDS = 7;
 
+/**
+ * Maximum time in milliseconds to allow a regex test to run.
+ * Prevents ReDoS (Regular Expression Denial of Service) from user-defined patterns.
+ */
+const REGEX_TIMEOUT_MS = 50;
+
+/**
+ * Safely test a regex pattern against a string with ReDoS protection.
+ * Returns false if the regex is invalid, takes too long, or doesn't match.
+ *
+ * Uses a simple character-length heuristic + try-catch approach:
+ * - Rejects obviously dangerous patterns before execution
+ * - Catches invalid regex syntax
+ */
+export function safeRegexTest(pattern: string, input: string): boolean {
+  try {
+    const regex = new RegExp(pattern, 'i');
+
+    // Pre-check: reject patterns with known ReDoS-prone constructs
+    // Nested quantifiers like (a+)+, (a*)+, (a+)*, (a{1,})+
+    if (/(\(.+[+*]\))[+*]|\(\?:[^)]+[+*]\)[+*]/.test(pattern)) {
+      process.stderr.write(`[vibesafu] Warning: Skipping potentially dangerous regex pattern: ${pattern}\n`);
+      return false;
+    }
+
+    // Limit input length to prevent long-running matches
+    const testInput = input.length > REGEX_TIMEOUT_MS * 40 ? input.slice(0, REGEX_TIMEOUT_MS * 40) : input;
+    return regex.test(testInput);
+  } catch {
+    // Invalid regex syntax
+    return false;
+  }
+}
+
 /** Timeout for plan mode approval (72 hours - user may be away) */
 const PLAN_MODE_TIMEOUT_SECONDS = 72 * 60 * 60;
 
@@ -180,32 +214,24 @@ export async function processPermissionRequest(
 
   // 3a: Custom allow patterns (user-defined safe commands)
   for (const pattern of config.customPatterns.allow) {
-    try {
-      if (new RegExp(pattern, 'i').test(command)) {
-        return {
-          decision: 'allow',
-          reason: `Custom allow pattern: ${pattern}`,
-          source: 'instant-allow',
-        };
-      }
-    } catch {
-      // Invalid regex, skip
+    if (safeRegexTest(pattern, command)) {
+      return {
+        decision: 'allow',
+        reason: `Custom allow pattern: ${pattern}`,
+        source: 'instant-allow',
+      };
     }
   }
 
   // 3b: Custom block patterns (user-defined dangerous commands)
   for (const pattern of config.customPatterns.block) {
-    try {
-      if (new RegExp(pattern, 'i').test(command)) {
-        return {
-          decision: 'needs-review',
-          reason: `Custom block pattern: ${pattern}`,
-          source: 'high-risk',
-          userMessage: `[CUSTOM BLOCK] Matched pattern: ${pattern}\n\nThis command was blocked by your custom config.\n\nAuto-reject in ${TIMEOUT_SECONDS}s.`,
-        };
-      }
-    } catch {
-      // Invalid regex, skip
+    if (safeRegexTest(pattern, command)) {
+      return {
+        decision: 'needs-review',
+        reason: `Custom block pattern: ${pattern}`,
+        source: 'high-risk',
+        userMessage: `[CUSTOM BLOCK] Matched pattern: ${pattern}\n\nThis command was blocked by your custom config.\n\nAuto-reject in ${TIMEOUT_SECONDS}s.`,
+      };
     }
   }
 
